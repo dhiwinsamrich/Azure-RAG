@@ -10,7 +10,7 @@ __pycache__/
 *.db
 .judge_cache.db
 .parsed_cache/
-corpus/
+/corpus/
 .env
 *.log
 .local_index.json
