@@ -102,7 +102,7 @@ export const METRIC_LABELS: Record<string, string> = {
   citation_precision: "Citation precision",
   citation_recall: "Citation recall",
   context_hit_rate: "Context hit rate",
-  mrr: "MRR",
+  mrr: "MRR (Search Rank)",
   refusal_correct: "Refusal accuracy",
   numeric_exactness: "Numeric exactness",
   fiscal_period_correctness: "Fiscal period",
@@ -110,6 +110,26 @@ export const METRIC_LABELS: Record<string, string> = {
   answer_relevancy: "Answer relevancy",
   context_precision: "Context precision",
   context_recall: "Context recall",
+};
+
+export const METRIC_DESCRIPTIONS: Record<string, string> = {
+  citation_validity: "Verifies every cited span character-for-character against source chunks. 1.00 means 100% verified, zero hallucinated quotes.",
+  context_hit_rate: "Percentage of queries where the required target filing chunk was successfully retrieved in the search results.",
+  mrr: "Mean Reciprocal Rank (Search Ranking Quality). 1.00 means the right chunk was ranked #1. If 0.00, target chunk was absent or ranked outside top results.",
+  refusal_correct: "Guardrails & honesty: correctly answers valid questions while refusing to invent answers for out-of-scope or missing filings.",
+  numeric_exactness: "Checks if extracted numbers, dollar figures ($M), and basis points match audited report values.",
+  fiscal_period_correctness: "Verifies that figures are attributed to the exact requested fiscal year (e.g. FY23 vs FY22).",
+  citation_precision: "Share of cited chunks that were actually relevant to the question.",
+  citation_recall: "Share of all required gold chunks that were cited in the answer.",
+};
+
+export const METRIC_SHORT_EXPLANATIONS: Record<string, string> = {
+  citation_validity: "100% real verified quotes",
+  context_hit_rate: "Found target chunk in search",
+  mrr: "Search rank position (#1 = 1.00)",
+  refusal_correct: "Honesty on missing data",
+  numeric_exactness: "Exact dollar & % figures",
+  fiscal_period_correctness: "Correct fiscal year attribution",
 };
 
 export function label(metric: string): string {

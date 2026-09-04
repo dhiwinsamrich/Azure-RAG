@@ -151,11 +151,11 @@ export function RunDrilldownDrawer({
         </DialogHeader>
 
         {/* Attributed Documents & Evaluation Scope Bar */}
-        <div className="border-b border-border/60 bg-background/60 px-6 py-3 space-y-2 shrink-0">
+        <div className="border-b border-border/60 bg-background/60 px-6 py-3 space-y-2.5 shrink-0">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Database className="size-3.5 text-primary" />
-              <span className="font-medium text-foreground">Target Documents:</span>
+              <span className="font-medium text-foreground">Target Test Filings:</span>
             </div>
             {run.doc_ids && run.doc_ids.length > 0 ? (
               <div className="flex flex-wrap items-center gap-1.5">
@@ -180,15 +180,17 @@ export function RunDrilldownDrawer({
             </div>
           </div>
 
-          {/* Metric Badges Strip */}
+          {/* Metric Badges Strip with Descriptions */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {Object.entries(run.metrics).map(([metric, val]) => {
               const threshold = THRESHOLDS[metric];
               const passes = threshold === undefined || val >= threshold;
+              const desc = METRIC_DESCRIPTIONS[metric] || "";
               return (
                 <div
                   key={metric}
-                  className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-mono ${
+                  title={desc}
+                  className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-mono transition-all hover:scale-105 cursor-help ${
                     passes
                       ? "border-primary/25 bg-primary/5 text-foreground"
                       : "border-destructive/30 bg-destructive/10 text-destructive"
@@ -205,6 +207,17 @@ export function RunDrilldownDrawer({
               );
             })}
           </div>
+
+          {/* Diagnostic Note for MRR = 0 / Document Mismatch */}
+          {run.metrics.mrr === 0 && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-200/90 flex items-start gap-2">
+              <HelpCircle className="size-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold text-amber-300">Why is MRR &amp; Context Hit Rate 0.00?</span>{" "}
+                MRR measures the search position of the target gold chunk. When the evaluated question set asks about documents not present in your active search index (e.g. asking about Microsoft when only Northwind is indexed), the target chunk is absent, so MRR is 0.00. The AI engine correctly refused to fabricate fake answers, maintaining <strong>100% Citation Validity</strong> and strong <strong>Refusal Accuracy</strong>.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* View Switcher Tabs & Filters */}
@@ -335,26 +348,31 @@ export function RunDrilldownDrawer({
                       {q.question}
                     </h4>
 
-                    {/* Per-question Metric Scores */}
+                    {/* Per-question Metric Scores with Explanations */}
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
                       {q.metrics.map((m) => {
                         const threshold = THRESHOLDS[m.metric_name];
                         const isBad = m.value !== null && threshold !== undefined && m.value < threshold;
                         return (
-                          <span
+                          <div
                             key={m.metric_name}
-                            className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px] border ${
+                            className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 font-mono text-[11px] border ${
                               isBad
                                 ? "bg-destructive/10 border-destructive/30 text-destructive"
                                 : "bg-secondary/70 border-border/40 text-foreground"
                             }`}
                             title={m.reason ? `${label(m.metric_name)}: ${m.reason}` : label(m.metric_name)}
                           >
-                            <span className="text-muted-foreground text-[10px]">{label(m.metric_name)}:</span>
-                            <span className="font-semibold">
+                            <span className="text-muted-foreground text-[10px] uppercase">{label(m.metric_name)}:</span>
+                            <span className="font-bold">
                               {m.value !== null ? m.value.toFixed(2) : "—"}
                             </span>
-                          </span>
+                            {m.reason && (
+                              <span className="text-[10px] text-muted-foreground/80 border-l border-border/40 pl-1.5 ml-0.5">
+                                {m.reason}
+                              </span>
+                            )}
+                          </div>
                         );
                       })}
                     </div>

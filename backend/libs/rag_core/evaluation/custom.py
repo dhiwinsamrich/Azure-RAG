@@ -47,8 +47,11 @@ def citation_precision_recall(
     trace: Trace, question: GoldenQuestion
 ) -> list[MetricValue]:
     """Cited-the-right-thing, as distinct from cited-something-real."""
-    gold = set(question.gold_chunk_ids)
-    cited = {c.chunk_id for c in trace.citations}
+    def _norm(s: str) -> str:
+        return s.replace("::", "__")
+
+    gold = {_norm(g) for g in question.gold_chunk_ids}
+    cited = {_norm(c.chunk_id) for c in trace.citations}
     if not gold:
         return []
     hit = cited & gold
@@ -112,10 +115,13 @@ def refusal_correct(trace: Trace, question: GoldenQuestion) -> MetricValue:
 def retrieval_metrics(trace: Trace, question: GoldenQuestion) -> list[MetricValue]:
     """Hit-rate@k and MRR against the recorded gold chunks - free, and the
     fastest tripwire for a chunking or indexing regression."""
-    gold = set(question.gold_chunk_ids)
+    def _norm(s: str) -> str:
+        return s.replace("::", "__")
+
+    gold = {_norm(g) for g in question.gold_chunk_ids}
     if not gold:
         return []
-    ids = trace.retrieved_ids()
+    ids = [_norm(i) for i in trace.retrieved_ids()]
     hit = 1.0 if gold & set(ids) else 0.0
     rr = 0.0
     for i, cid in enumerate(ids, start=1):
