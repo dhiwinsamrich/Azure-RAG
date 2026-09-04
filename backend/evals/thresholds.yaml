@@ -1,0 +1,36 @@
+# CI quality gate. Only free / deterministic metrics appear here so the gate
+# costs cents and finishes in under two minutes. The LLM-judge suite runs
+# nightly against the full golden set.
+#
+#   min       absolute floor - fail the build below this
+#   max_drop  allowed regression against the stored baseline for this config
+
+thresholds:
+  citation_validity:
+    min: 0.95
+    max_drop: 0.02
+
+  context_hit_rate:
+    min: 0.80
+    max_drop: 0.03
+
+  mrr:
+    min: 0.60
+    max_drop: 0.05
+
+  refusal_correct:
+    min: 0.85
+    max_drop: 0.05
+
+  numeric_exactness:
+    min: 0.80
+    max_drop: 0.05
+
+  fiscal_period_correctness:
+    min: 0.85
+    max_drop: 0.05
+
+# Nightly-only, added once the RAGAS suite has a baseline:
+#   faithfulness:     { min: 0.85, max_drop: 0.03 }
+#   context_recall:   { min: 0.80, max_drop: 0.03 }
+#   answer_relevancy: { min: 0.80, max_drop: 0.03 }

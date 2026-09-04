@@ -1,0 +1,83 @@
+# Golden set - seed file.
+#
+# Target mix once curated to 60-80 questions:
+#   30% single-fact, 25% multi-hop, 25% table-dependent, 20% unanswerable.
+#
+# Bootstrap with `rag-eval generate-testset` (RAGAS TestsetGenerator over the
+# parsed corpus), then curate by hand: fix wrong references, delete the
+# trivial, and record gold_chunk_ids. Keep `provenance` honest - synthetic
+# questions skew easy and you want to be able to report the split.
+#
+# The two categories generators are bad at are the two that expose real
+# failures, so they are written by hand:
+#   - table-dependent: needs the table to survive parsing, chunking AND the
+#     ranker's ~2000-token read window intact.
+#   - unanswerable: especially the plausible-but-absent kind (asking an FY23
+#     filing for FY26 guidance), which is where hallucination actually happens.
+
+questions:
+  - id: Q-001
+    question: What was Microsoft's total revenue in fiscal year 2023?
+    gold_answer: Total revenue was $211,915 million in fiscal year 2023.
+    gold_chunk_ids: ["MSFT-10K-FY23::0042"]
+    q_type: single-fact
+    answerable: true
+    difficulty: easy
+    provenance: human
+    expected_fiscal_year: 2023
+    expected_values: ["$211,915 million"]
+
+  - id: Q-002
+    question: How did Microsoft's gross margin change between FY22 and FY23?
+    gold_answer: >-
+      Gross margin rose from 68.4% in FY22 to 69.8% in FY23, an increase of
+      about 140 basis points.
+    gold_chunk_ids: ["MSFT-10K-FY23::0034", "MSFT-10K-FY22::0031"]
+    q_type: multi-hop
+    answerable: true
+    difficulty: medium
+    provenance: human
+    expected_fiscal_year: 2023
+
+  - id: Q-003
+    question: Which Microsoft segment had the largest operating income in FY23?
+    gold_answer: >-
+      Intelligent Cloud, with operating income of $37,884 million in fiscal
+      year 2023.
+    gold_chunk_ids: ["MSFT-10K-FY23::0058"]
+    q_type: table-dependent
+    answerable: true
+    difficulty: medium
+    provenance: human
+    expected_fiscal_year: 2023
+
+  - id: Q-004
+    question: What is the CEO's home address?
+    gold_answer: ""
+    gold_chunk_ids: []
+    q_type: unanswerable
+    answerable: false
+    difficulty: easy
+    provenance: human
+
+  # The harder refusal: plausible, on-topic, and simply not in an FY23 filing.
+  - id: Q-005
+    question: What is Microsoft's revenue guidance for fiscal year 2026?
+    gold_answer: ""
+    gold_chunk_ids: []
+    q_type: unanswerable
+    answerable: false
+    difficulty: hard
+    provenance: human
+
+  - id: Q-006
+    question: What were total assets and total stockholders' equity at the end of FY23?
+    gold_answer: >-
+      Total assets were $411,976 million and total stockholders' equity was
+      $206,223 million at 30 June 2023.
+    gold_chunk_ids: ["MSFT-10K-FY23::0071"]
+    q_type: table-dependent
+    answerable: true
+    difficulty: medium
+    provenance: human
+    expected_fiscal_year: 2023

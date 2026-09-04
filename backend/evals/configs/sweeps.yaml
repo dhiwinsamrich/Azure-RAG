@@ -1,0 +1,55 @@
+# Additional ablation arms, loaded on top of the four built-in retrieval
+# configs. A new arm is a file change, never a code change.
+#
+# Run the chunk-size sweep and keep the curve - having the curve is what
+# separates a measured choice from a guess.
+
+configs:
+  # --- chunk size sweep, hybrid + semantic ranker held constant -----------
+  - id: chunk_300
+    name: "Hybrid+semantic, 300 tokens"
+    chunk_size: 300
+    chunk_overlap: 50
+
+  - id: chunk_500
+    name: "Hybrid+semantic, 500 tokens"
+    chunk_size: 500
+    chunk_overlap: 80
+
+  - id: chunk_800
+    name: "Hybrid+semantic, 800 tokens"
+    chunk_size: 800
+    chunk_overlap: 120
+
+  # Above the semantic ranker's ~2000 token read window the ranker scores a
+  # silently truncated version of the chunk. Included precisely to measure it.
+  - id: chunk_1200
+    name: "Hybrid+semantic, 1200 tokens"
+    chunk_size: 1200
+    chunk_overlap: 150
+
+  # --- embedding dimension: does shortening cost recall? ------------------
+  # Gemini embeddings support 768 / 1536 / 3072 via MRL truncation. Each arm
+  # needs its OWN search index: vector dimensions are fixed at index creation.
+  - id: dims_3072
+    name: "Full 3072 dimensions"
+    embed_dims: 3072
+
+  - id: dims_1536
+    name: "Shortened to 1536 dimensions"
+    embed_dims: 1536
+
+  - id: dims_768
+    name: "Shortened to 768 dimensions"
+    embed_dims: 768
+
+  # --- retrieval depth ----------------------------------------------------
+  - id: topk_50_rerank_8
+    name: "Retrieve 50, rerank to 8"
+    top_k: 50
+    rerank_top_n: 8
+
+  - id: topk_20_rerank_5
+    name: "Retrieve 20, rerank to 5"
+    top_k: 20
+    rerank_top_n: 5

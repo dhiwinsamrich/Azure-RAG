@@ -1,0 +1,100 @@
+# Golden set for the SYNTHETIC Northwind sample corpus in backend/corpus/.
+#
+# Chunk ids here are real ids produced by ingesting that corpus, so retrieval
+# metrics (hit rate, MRR, citation precision/recall) are meaningful. The
+# default evals/golden_set.yaml targets a real MSFT corpus and will score zero
+# against Northwind - use this file when testing locally:
+#
+#   python -m apps.evaluator.cli --golden-set evals/golden_set_local.yaml run
+#
+# Mix mirrors the recommended one: single-fact, multi-hop, table-dependent and
+# unanswerable - including the harder "plausible but absent" refusal.
+
+questions:
+  - id: NW-001
+    question: What was Northwind's total revenue in fiscal year 2023?
+    gold_answer: Total revenue was $211,915 million in fiscal year 2023.
+    gold_chunk_ids: ["NORTHWIND-10K-FY23::0001"]
+    q_type: single-fact
+    answerable: true
+    difficulty: easy
+    provenance: human
+    expected_fiscal_year: 2023
+    expected_values: ["$211,915 million"]
+
+  - id: NW-002
+    question: How did gross margin change between FY22 and FY23?
+    gold_answer: >-
+      Gross margin rose from 68.4% in fiscal year 2022 to 69.8% in fiscal year
+      2023, an improvement of approximately 140 basis points.
+    gold_chunk_ids: ["NORTHWIND-10K-FY23::0001", "NORTHWIND-10K-FY22::0001"]
+    q_type: multi-hop
+    answerable: true
+    difficulty: medium
+    provenance: human
+    expected_fiscal_year: 2023
+
+  - id: NW-003
+    question: Which segment had the largest operating income in fiscal year 2023?
+    gold_answer: >-
+      Intelligent Cloud, with operating income of $37,884 million in fiscal
+      year 2023.
+    gold_chunk_ids: ["NORTHWIND-10K-FY23::0003", "NORTHWIND-10K-FY23::0002"]
+    q_type: table-dependent
+    answerable: true
+    difficulty: medium
+    provenance: human
+    expected_fiscal_year: 2023
+
+  - id: NW-004
+    question: What were total assets and total stockholders' equity at the end of FY23?
+    gold_answer: >-
+      Total assets were $411,976 million and total stockholders' equity was
+      $206,223 million at June 30, 2023.
+    gold_chunk_ids: ["NORTHWIND-10K-FY23::0005", "NORTHWIND-10K-FY23::0004"]
+    q_type: table-dependent
+    answerable: true
+    difficulty: medium
+    provenance: human
+    expected_fiscal_year: 2023
+
+  - id: NW-005
+    question: What was Intelligent Cloud revenue in fiscal year 2022?
+    gold_answer: Intelligent Cloud revenue was $74,965 million in fiscal year 2022.
+    gold_chunk_ids: ["NORTHWIND-10K-FY22::0002"]
+    q_type: table-dependent
+    answerable: true
+    difficulty: medium
+    provenance: human
+    expected_fiscal_year: 2022
+    expected_values: ["74,965"]
+
+  # Obvious refusal.
+  - id: NW-006
+    question: What is the CEO's home address?
+    gold_answer: ""
+    gold_chunk_ids: []
+    q_type: unanswerable
+    answerable: false
+    difficulty: easy
+    provenance: human
+
+  # The harder refusal: on-topic, plausible, and simply not in an FY23 filing.
+  - id: NW-007
+    question: What is Northwind's revenue guidance for fiscal year 2026?
+    gold_answer: ""
+    gold_chunk_ids: []
+    q_type: unanswerable
+    answerable: false
+    difficulty: hard
+    provenance: human
+
+  # Also absent: the filings never state headcount.
+  - id: NW-008
+    question: How many employees did Northwind have at the end of FY23?
+    gold_answer: ""
+    gold_chunk_ids: []
+    q_type: unanswerable
+    answerable: false
+    difficulty: hard
+    provenance: human
