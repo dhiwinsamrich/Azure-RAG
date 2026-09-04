@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
+import { NavStatus } from "@/components/nav-status";
+
 // shadcn's theme block reads --font-sans / --font-mono; next/font defines them.
 const sans = Geist({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
@@ -58,12 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               ))}
             </nav>
 
-            <div className="ml-auto flex items-center gap-2">
-              <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">
-                local · bm25 + vectors
-              </span>
-              <span className="size-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
-            </div>
+            <NavStatus />
           </div>
         </header>
 

@@ -565,9 +565,26 @@ async def compare(metrics: str = Query(",".join(ALL_METRICS[:4]))) -> dict[str, 
     return {"metrics": wanted, "configs": matrix}
 
 
+@api.get("/status")
+async def status() -> dict[str, Any]:
+    s = settings()
+    return {
+        "status": "ok",
+        "search_backend": s.search_backend,
+        "search_index": s.search_index,
+        "parser_backend": s.parser_backend,
+        "llm_provider": s.llm_provider,
+        "enable_embeddings": s.enable_embeddings,
+        "embed_dims": s.embed_dims,
+        "enable_semantic_ranker": s.enable_semantic_ranker,
+        "default_config_id": s.default_config_id,
+    }
+
+
 app.include_router(api)
 
 
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
