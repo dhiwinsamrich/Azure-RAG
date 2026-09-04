@@ -40,6 +40,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   label,
+  METRIC_DESCRIPTIONS,
   THRESHOLDS,
   type RunQuestionDetail,
   type RunSummary,
