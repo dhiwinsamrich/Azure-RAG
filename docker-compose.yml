@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: deploy/api.Dockerfile
+    container_name: financial-rag-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - SEARCH_BACKEND=${SEARCH_BACKEND:-local}
+      - PARSER_BACKEND=${PARSER_BACKEND:-local}
+      - STORE_BACKEND=${STORE_BACKEND:-sqlite}
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+      - SEARCH_ENDPOINT=${SEARCH_ENDPOINT:-}
+      - SEARCH_KEY=${SEARCH_KEY:-}
+      - SEARCH_INDEX=${SEARCH_INDEX:-filings}
+      - DOC_INTELLIGENCE_ENDPOINT=${DOC_INTELLIGENCE_ENDPOINT:-}
+      - DOC_INTELLIGENCE_KEY=${DOC_INTELLIGENCE_KEY:-}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/rag.db}
+      - ENABLE_EMBEDDINGS=true
+      - EMBED_DIMS=1536
+      - DEFAULT_CONFIG_ID=hybrid_rrf
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://frontend:3000
+    volumes:
+      - backend_data:/app/data
+      - ./backend/corpus:/app/corpus
+    restart: unless-stopped
+    networks:
+      - rag-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/api/documents\")' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: financial-rag-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - API_BASE=http://backend:8000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - rag-network
+
+volumes:
+  backend_data:
+
+networks:
+  rag-network:
+    driver: bridge
