@@ -1,0 +1,92 @@
+[project]
+name = "azure-rag"
+version = "0.1.0"
+description = "Financial document intelligence and RAG on Azure"
+requires-python = ">=3.11"
+
+# Pure-logic core. Nothing here reaches the network, so the test suite runs
+# with no Azure account and no credentials.
+dependencies = [
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+api = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sse-starlette>=2.1",
+    "httpx>=0.27",
+]
+gemini = [
+    "google-genai>=2.0",
+    # google-genai needs websockets >=16 (uses websockets.uri.Proxy), while
+    # uvicorn[standard]'s websockets protocol needs <16 (OP_BINARY). Nothing
+    # here uses websockets - the API streams over SSE - so pin the version
+    # google-genai requires and let uvicorn's unused ws impl stay unloaded.
+    "websockets>=16,<17",
+]
+azure = [
+    "azure-identity>=1.17",
+    "azure-keyvault-secrets>=4.8",
+    "azure-search-documents>=11.5.1",
+    "azure-ai-documentintelligence>=1.0.0",
+    "azure-storage-blob>=12.20",
+    "azure-storage-queue>=12.10",
+    "openai>=1.40",
+]
+data = [
+    "SQLAlchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "alembic>=1.13",
+    "openpyxl>=3.1",
+    "pandas>=2.2",
+]
+eval = [
+    "ragas>=0.2.6",
+    "langchain-google-genai>=2.0",
+    "datasets>=2.20",
+    "azure-ai-evaluation>=1.0.0",
+    "typer>=0.12",
+    "rich>=13.7",
+]
+telemetry = [
+    "opentelemetry-sdk>=1.26",
+    "opentelemetry-instrumentation-fastapi>=0.47b0",
+    "azure-monitor-opentelemetry>=1.6",
+]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.6",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["libs"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["libs", "."]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency markers are called in argument defaults by design;
+# B008 otherwise fires on every endpoint that takes a file or a query param.
+extend-immutable-calls = [
+    "fastapi.Body", "fastapi.Depends", "fastapi.File",
+    "fastapi.Form", "fastapi.Query",
+]
