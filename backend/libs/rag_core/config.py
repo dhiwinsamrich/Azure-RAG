@@ -44,16 +44,19 @@ class Settings(BaseSettings):
     # API key is needed at all. Vector and hybrid configs stop working.
     enable_embeddings: bool = True
 
-    # Endpoints - resource names only, never keys.
+    # Endpoints and keys
     search_endpoint: str = ""
+    search_key: SecretStr = SecretStr("")
     search_index: str = "filings"
     # The Azure AI Search FREE tier does not offer the semantic ranker. Set
     # false there, or index creation defines a config you can never use and
     # `hybrid_semantic` queries fail at query time.
     enable_semantic_ranker: bool = True
     openai_endpoint: str = ""
+    openai_api_key: SecretStr = SecretStr("")
     openai_api_version: str = "2024-10-21"
     doc_intelligence_endpoint: str = ""
+    doc_intelligence_key: SecretStr = SecretStr("")
     storage_account_url: str = ""
     raw_container: str = "raw"
     parsed_container: str = "parsed"

@@ -169,7 +169,7 @@ class LocalSearcher:
         self._refresh()
         out: dict[str, dict[str, Any]] = {}
         for d in self.docs.values():
-            doc_id = d.get("doc_id") or d["id"].split("::")[0]
+            doc_id = d.get("doc_id") or (d["id"].split("__")[0] if "__" in d["id"] else d["id"].split("::")[0])
             entry = out.setdefault(doc_id, {
                 "doc_id": doc_id, "company": d.get("company", ""),
                 "ticker": d.get("ticker", ""), "doc_type": d.get("doc_type", ""),
@@ -190,7 +190,7 @@ class LocalSearcher:
         self._refresh()
         victims = [
             cid for cid, d in self.docs.items()
-            if (d.get("doc_id") or cid.split("::")[0]) == doc_id
+            if (d.get("doc_id") or (cid.split("__")[0] if "__" in cid else cid.split("::")[0])) == doc_id
         ]
         for cid in victims:
             del self.docs[cid]

@@ -320,7 +320,7 @@ class Store:
                     qtype_dict = run_qtypes.setdefault(rid, {})
                     qtype_dict[qt] = qtype_dict.get(qt, 0) + 1
                     for ch_id in qinfo.get("gold_chunk_ids", []):
-                        doc_id = ch_id.split("::")[0]
+                        doc_id = ch_id.split("__")[0] if "__" in ch_id else ch_id.split("::")[0]
                         if doc_id:
                             run_docs.setdefault(rid, set()).add(doc_id)
 

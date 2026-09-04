@@ -140,7 +140,7 @@ class LayoutChunker:
                 "contains_table": contains_table,
             })
             chunk = Chunk(
-                id=f"{m.doc_id}::{m.chunk_index:04d}",
+                id=f"{m.doc_id}__{m.chunk_index:04d}",
                 content="",
                 metadata=m,
             )

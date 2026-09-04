@@ -187,13 +187,18 @@ class IngestPipeline:
         safe = re.sub(r"[^A-Za-z0-9._-]", "_", doc_id)
         return self.cache / f"{safe}.json"
 
-    async def parse(self, doc_id: str, content: bytes) -> tuple[dict[str, Any], bool]:
+    async def parse(self, doc_id: str, content: bytes, file_suffix: str = "") -> tuple[dict[str, Any], bool]:
         """Parse, or return the cached result. The cache is what makes a
         re-index minutes rather than hours."""
         path = self.cache_path(doc_id)
         if path.exists():
             return json.loads(path.read_text(encoding="utf-8")), True
-        result = await self.parser.analyze(content)
+        if file_suffix.lower() in {".md", ".markdown", ".txt"}:
+            from rag_core.local_parse import LocalParser
+            parser = LocalParser()
+            result = await parser.analyze(content)
+        else:
+            result = await self.parser.analyze(content)
         result["doc_id"] = doc_id
         path.write_text(json.dumps(result), encoding="utf-8")
         return result, False
@@ -206,10 +211,10 @@ class IngestPipeline:
         meta = infer_metadata(parsed.doc_id, first_text, source_url)
         return self.chunker.chunk(parsed, meta)
 
-    async def ingest(self, doc_id: str, content: bytes, source_url: str = "") -> IngestResult:
+    async def ingest(self, doc_id: str, content: bytes, source_url: str = "", file_suffix: str = "") -> IngestResult:
         out = IngestResult(doc_id=doc_id)
         try:
-            result, cached = await self.parse(doc_id, content)
+            result, cached = await self.parse(doc_id, content, file_suffix=file_suffix)
             out.from_cache = cached
         except Exception as exc:  # noqa: BLE001
             out.errors.append(f"parse failed: {exc}")

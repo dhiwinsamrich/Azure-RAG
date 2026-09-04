@@ -18,6 +18,14 @@ import sys
 import uuid
 from pathlib import Path
 
+# Ensure libs directory is on sys.path
+_root = Path(__file__).resolve().parents[2]
+_libs = _root / "libs"
+if str(_libs) not in sys.path:
+    sys.path.insert(0, str(_libs))
+if str(_root) not in sys.path:
+    sys.path.insert(0, str(_root))
+
 from rag_core.config import EVALS_DIR, get_config, get_settings
 from rag_core.evaluation.custom import evaluate as evaluate_custom
 from rag_core.evaluation.custom import false_refusal_rate

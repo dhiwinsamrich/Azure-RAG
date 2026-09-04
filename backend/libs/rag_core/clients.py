@@ -30,6 +30,26 @@ def credential():
     return DefaultAzureCredential(exclude_interactive_browser_credential=False)
 
 
+def search_credential(settings: Settings | None = None):
+    s = settings or get_settings()
+    key = s.search_key.get_secret_value() if hasattr(s.search_key, "get_secret_value") else str(s.search_key)
+    if key:
+        from azure.core.credentials import AzureKeyCredential
+
+        return AzureKeyCredential(key)
+    return credential()
+
+
+def docintel_credential(settings: Settings | None = None):
+    s = settings or get_settings()
+    key = s.doc_intelligence_key.get_secret_value() if hasattr(s.doc_intelligence_key, "get_secret_value") else str(s.doc_intelligence_key)
+    if key:
+        from azure.core.credentials import AzureKeyCredential
+
+        return AzureKeyCredential(key)
+    return credential()
+
+
 # --------------------------------------------------------------------------
 # Protocols - the apps depend on these, so tests can substitute fakes.
 # --------------------------------------------------------------------------
@@ -189,7 +209,7 @@ class AzureSearcher:
             self._client = SearchClient(
                 endpoint=self.s.search_endpoint,
                 index_name=self.s.search_index,
-                credential=credential(),
+                credential=search_credential(self.s),
             )
         return self._client
 
@@ -295,7 +315,7 @@ def create_or_update_index(settings: Settings | None = None) -> str:
     index = build_search_index(
         s.search_index, s.embed_dims, include_semantic=s.enable_semantic_ranker
     )
-    client = SearchIndexClient(endpoint=s.search_endpoint, credential=credential())
+    client = SearchIndexClient(endpoint=s.search_endpoint, credential=search_credential(s))
     result = client.create_or_update_index(index)
     return result.name
 
@@ -320,7 +340,7 @@ class DocumentIntelligenceParser:
             from azure.ai.documentintelligence.aio import DocumentIntelligenceClient
 
             self._client = DocumentIntelligenceClient(
-                endpoint=self.s.doc_intelligence_endpoint, credential=credential()
+                endpoint=self.s.doc_intelligence_endpoint, credential=docintel_credential(self.s)
             )
         return self._client
 

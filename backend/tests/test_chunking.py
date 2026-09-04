@@ -14,7 +14,7 @@ def test_chunks_carry_context_header_and_metadata(sample_doc, meta):
     assert first.content.startswith("[Microsoft Corporation · 10-K · FY2023")
     assert first.metadata.section_path.startswith("Item 7.")
     assert first.metadata.ticker == "MSFT"
-    assert first.id == "MSFT-10K-FY23::0000"
+    assert first.id == "MSFT-10K-FY23__0000"
 
 
 def test_section_path_tracks_heading_hierarchy(sample_doc, meta):

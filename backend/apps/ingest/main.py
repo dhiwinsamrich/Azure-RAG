@@ -17,6 +17,14 @@ import asyncio
 import sys
 from pathlib import Path
 
+# Ensure libs directory is on sys.path
+_root = Path(__file__).resolve().parents[2]
+_libs = _root / "libs"
+if str(_libs) not in sys.path:
+    sys.path.insert(0, str(_libs))
+if str(_root) not in sys.path:
+    sys.path.insert(0, str(_root))
+
 from rag_core.config import get_settings
 
 from .pipeline import IngestPipeline, IngestResult
@@ -68,7 +76,8 @@ def check() -> int:
             print(f"  [ok]   AI Search      : reachable, index '{s.search_index}' {here}")
             if s.search_index in names:
                 from azure.search.documents import SearchClient
-                sc = SearchClient(s.search_endpoint, s.search_index, credential())
+                from rag_core.clients import search_credential
+                sc = SearchClient(s.search_endpoint, s.search_index, search_credential(s))
                 print(f"         documents      : {sc.get_document_count()}")
         except Exception as exc:  # noqa: BLE001
             ok = False
@@ -79,9 +88,9 @@ def check() -> int:
     else:
         try:
             from azure.ai.documentintelligence import DocumentIntelligenceClient
-            from rag_core.clients import credential
+            from rag_core.clients import docintel_credential
             DocumentIntelligenceClient(
-                endpoint=s.doc_intelligence_endpoint, credential=credential()
+                endpoint=s.doc_intelligence_endpoint, credential=docintel_credential(s)
             )
             print(f"  [ok]   Doc Intelligence: client created for {s.doc_intelligence_endpoint}")
         except Exception as exc:  # noqa: BLE001
@@ -136,9 +145,8 @@ async def run_local(directory: str) -> int:
     re-running after a chunker change."""
     s = get_settings()
     pipeline = build_pipeline()
-    # The local parser reads markdown/text; Document Intelligence reads PDFs.
-    suffixes = ({".md", ".markdown", ".txt"} if s.parser_backend == "local"
-                else {".pdf", ".xlsx"})
+    # Allow markdown, text, PDF, and office documents
+    suffixes = {".pdf", ".xlsx", ".docx", ".md", ".markdown", ".txt"}
     paths = sorted(
         p for p in Path(directory).rglob("*") if p.suffix.lower() in suffixes
     )
@@ -149,11 +157,11 @@ async def run_local(directory: str) -> int:
     results = []
     for i, path in enumerate(paths, 1):
         doc_id = path.stem
-        print(f"[{i}/{len(paths)}] {doc_id}", flush=True)
+        print(f"[{i}/{len(paths)}] {doc_id} ({path.suffix})", flush=True)
         results.append(
             # as_uri() requires an absolute path; a relative --local arg raises.
             await pipeline.ingest(
-                doc_id, path.read_bytes(), source_url=path.resolve().as_uri()
+                doc_id, path.read_bytes(), source_url=path.resolve().as_uri(), file_suffix=path.suffix
             )
         )
     return report(results)
