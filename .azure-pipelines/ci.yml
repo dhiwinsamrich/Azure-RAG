@@ -1,0 +1,131 @@
+# CI: lint -> unit tests -> typecheck -> build -> eval gate -> deploy.
+#
+# The eval gate is the part worth having. It runs a 20-question subset using
+# only free, deterministic metrics, so it costs cents and finishes in under two
+# minutes - and it fails the build when quality regresses, which is the thing
+# almost nobody wires up.
+
+trigger:
+  branches: { include: [main] }
+pr:
+  branches: { include: [main] }
+
+variables:
+  pythonVersion: '3.12'
+  nodeVersion: '22.x'
+
+stages:
+  - stage: Verify
+    displayName: Lint, test, typecheck
+    jobs:
+      - job: Backend
+        pool: { vmImage: 'ubuntu-latest' }
+        steps:
+          - task: UsePythonVersion@0
+            inputs: { versionSpec: $(pythonVersion) }
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -e "./backend[api,dev]"
+            displayName: Install
+
+          - script: ruff check libs apps tests
+            workingDirectory: backend
+            displayName: Lint
+
+          - script: pytest tests -q --junitxml=$(Build.SourcesDirectory)/junit.xml
+            workingDirectory: backend
+            displayName: Unit tests
+
+          - task: PublishTestResults@2
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFiles: junit.xml
+              testRunTitle: 'rag_core unit tests'
+
+      - job: Frontend
+        pool: { vmImage: 'ubuntu-latest' }
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: $(nodeVersion) }
+          - script: npm ci
+            workingDirectory: frontend
+            displayName: Install
+          - script: npm run typecheck
+            workingDirectory: frontend
+            displayName: Typecheck
+          - script: npm run build
+            workingDirectory: frontend
+            displayName: Build
+
+  - stage: Build
+    displayName: Build containers
+    dependsOn: Verify
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: Images
+        pool: { vmImage: 'ubuntu-latest' }
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              # Each image is built from its own folder as the context.
+              inlineScript: |
+                set -euo pipefail
+                az acr build -r $(acrName) -t finrag/api:$(Build.BuildId) -f backend/deploy/api.Dockerfile backend
+                az acr build -r $(acrName) -t finrag/jobs:$(Build.BuildId) -f backend/deploy/jobs.Dockerfile backend
+                az acr build -r $(acrName) -t finrag/web:$(Build.BuildId) -f frontend/Dockerfile frontend
+
+  - stage: QualityGate
+    displayName: Evaluation quality gate
+    dependsOn: Build
+    jobs:
+      - job: Gate
+        pool: { vmImage: 'ubuntu-latest' }
+        steps:
+          - task: UsePythonVersion@0
+            inputs: { versionSpec: $(pythonVersion) }
+          - script: pip install -e "./backend[api,azure,eval,dev]"
+            displayName: Install
+
+          - task: AzureCLI@2
+            displayName: Run gate against the fixture index
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              workingDirectory: backend
+              # Deterministic metrics only - no LLM judge in the gate.
+              inlineScript: |
+                set -euo pipefail
+                python -m apps.evaluator.cli gate --config hybrid_semantic --limit 20 --thresholds evals/thresholds.yaml
+            env:
+              SEARCH_ENDPOINT: $(searchEndpoint)
+              SEARCH_INDEX: $(fixtureIndexName)
+              OPENAI_ENDPOINT: $(openaiEndpoint)
+              DATABASE_URL: $(databaseUrl)
+
+  - stage: Deploy
+    displayName: Deploy to Container Apps
+    dependsOn: QualityGate
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: Apps
+        pool: { vmImage: 'ubuntu-latest' }
+        environment: $(environmentName)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      az containerapp update -n finrag-api -g $(resourceGroup) --image $(acrName).azurecr.io/finrag/api:$(Build.BuildId)
+                      az containerapp update -n finrag-web -g $(resourceGroup) --image $(acrName).azurecr.io/finrag/web:$(Build.BuildId)
+                      az containerapp job update -n finrag-ingest -g $(resourceGroup) --image $(acrName).azurecr.io/finrag/jobs:$(Build.BuildId)
