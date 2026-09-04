@@ -415,11 +415,11 @@ async def document_chunks(doc_id: str) -> dict[str, Any]:
                 doc_vectors[cid] = d["content_vector"]
 
     if not chunks:
-        # Fallback to search index if document was ingested via CLI without store chunks
+        # Fallback 1: Local Searcher in-memory dict
         if hasattr(searcher, "docs"):
             matching = [
                 d for cid, d in searcher.docs.items()
-                if (d.get("doc_id") or cid.split("::")[0]) == doc_id
+                if (d.get("doc_id") or (cid.split("__")[0] if "__" in cid else cid.split("::")[0])) == doc_id
             ]
             if matching:
                 matching.sort(key=lambda x: x.get("chunk_index", 0))
@@ -455,6 +455,42 @@ async def document_chunks(doc_id: str) -> dict[str, Any]:
                     "embed_dims": dims,
                     "chunks": views,
                 }
+
+        # Fallback 2: Azure AI Search cloud index
+        try:
+            safe = doc_id.replace("'", "''")
+            results = await searcher.search(
+                search_text="*",
+                filter=f"doc_id eq '{safe}'",
+                top=1000,
+            )
+            if results:
+                results.sort(key=lambda x: int(x.get("chunk_index", 0) or 0))
+                views = []
+                dims = settings().embed_dims
+                for d in results:
+                    header, _, body = d.get("content", "").partition("\n\n")
+                    view: dict[str, Any] = {
+                        "id": d.get("id"),
+                        "chunk_index": int(d.get("chunk_index", 0) or 0),
+                        "section_path": d.get("section_path", ""),
+                        "page_start": int(d.get("page_start", 1) or 1),
+                        "page_end": int(d.get("page_end", 1) or 1),
+                        "contains_table": bool(d.get("contains_table", False)),
+                        "token_count": int(d.get("token_count", 0) or 0),
+                        "context_header": header.strip("[]") if header.startswith("[") else "",
+                        "body": body or d.get("content", ""),
+                        "content": d.get("content", ""),
+                    }
+                    views.append(view)
+                return {
+                    "doc_id": doc_id,
+                    "embed_dims": dims,
+                    "chunks": views,
+                }
+        except Exception as exc:
+            pass
+
         raise HTTPException(404, f"no chunks stored for {doc_id}")
 
     dims = store.chunk_dims(doc_id)
