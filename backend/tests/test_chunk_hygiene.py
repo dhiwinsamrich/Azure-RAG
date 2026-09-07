@@ -100,3 +100,41 @@ def test_context_header_still_shows_a_known_doc_type():
                                fiscal_year=2023, section_path="Item 7"),
     )
     assert c.context_header() == "MSFT · 10-K · FY2023 · Item 7"
+
+
+# --------------------------------------------------------------------------
+# doc_id must be a safe Azure AI Search key prefix
+# --------------------------------------------------------------------------
+
+from rag_core.chunking import sanitize_doc_id  # noqa: E402
+
+
+def test_sanitize_strips_azure_key_unsafe_characters():
+    # Spaces and parentheses are common in real filenames and are rejected
+    # outright by Azure AI Search document keys.
+    assert sanitize_doc_id("Q3 2024 Report (Final)") == "Q3_2024_Report_Final"
+
+
+def test_sanitize_preserves_dashes_and_underscores():
+    # These are exactly what real filing ids look like and are Azure-safe.
+    assert sanitize_doc_id("MSFT-10K-FY23") == "MSFT-10K-FY23"
+    assert sanitize_doc_id("AI_ML_Engineer_Resume") == "AI_ML_Engineer_Resume"
+
+
+def test_sanitize_collapses_runs_and_trims_edges():
+    assert sanitize_doc_id("  weird///name!!  ") == "weird_name"
+
+
+def test_sanitize_never_returns_empty():
+    assert sanitize_doc_id("****") == "document"
+    assert sanitize_doc_id("") == "document"
+
+
+def test_a_chunk_id_built_from_a_sanitized_doc_id_has_no_unsafe_characters(meta):
+    import re
+
+    bad_meta = meta.model_copy(update={"doc_id": sanitize_doc_id("Q3 2024 (Final)")})
+    doc = ParsedDocument(doc_id=bad_meta.doc_id, blocks=[para("Revenue was up.", 1)])
+    chunk = LayoutChunker().chunk(doc, bad_meta)[0]
+
+    assert re.fullmatch(r"[A-Za-z0-9_=-]+", chunk.id), chunk.id

@@ -25,6 +25,7 @@ if str(_libs) not in sys.path:
 if str(_root) not in sys.path:
     sys.path.insert(0, str(_root))
 
+from rag_core.chunking import sanitize_doc_id
 from rag_core.config import get_settings
 
 from .pipeline import IngestPipeline, IngestResult
@@ -143,7 +144,6 @@ def report(results: list[IngestResult]) -> int:
 async def run_local(directory: str) -> int:
     """Ingest a directory of PDFs. Useful for a first corpus load and for
     re-running after a chunker change."""
-    s = get_settings()
     pipeline = build_pipeline()
     # Allow markdown, text, PDF, and office documents
     suffixes = {".pdf", ".xlsx", ".docx", ".md", ".markdown", ".txt"}
@@ -156,7 +156,7 @@ async def run_local(directory: str) -> int:
 
     results = []
     for i, path in enumerate(paths, 1):
-        doc_id = path.stem
+        doc_id = sanitize_doc_id(path.stem)
         print(f"[{i}/{len(paths)}] {doc_id} ({path.suffix})", flush=True)
         results.append(
             # as_uri() requires an absolute path; a relative --local arg raises.
@@ -196,7 +196,7 @@ async def run_queue(max_messages: int = 32) -> int:
             data = await (await client.download_blob()).readall()
 
             result = await pipeline.ingest(
-                Path(blob_name).stem, data, source_url=client.url
+                sanitize_doc_id(Path(blob_name).stem), data, source_url=client.url
             )
             results.append(result)
             if not result.errors:

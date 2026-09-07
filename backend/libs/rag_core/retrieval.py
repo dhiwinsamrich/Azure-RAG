@@ -133,6 +133,19 @@ def build_search_request(
             raise ValueError("config.use_vector is set but no query vector was supplied")
         try:
             from azure.search.documents.models import VectorizedQuery
+        except ImportError:
+            # The `azure` extra is optional - local mode never needs it - so
+            # falling back to a plain dict here is expected. A real bug inside
+            # the SDK call below must NOT be caught by the same branch, or it
+            # silently swaps in a differently-shaped query object instead of
+            # surfacing the compatibility problem.
+            req["vector_queries"] = [{
+                "kind": "vector",
+                "vector": list(vector),
+                "k_nearest_neighbors": max(config.top_k, config.rerank_top_n),
+                "fields": vector_field,
+            }]
+        else:
             req["vector_queries"] = [
                 VectorizedQuery(
                     vector=list(vector),
@@ -140,13 +153,6 @@ def build_search_request(
                     fields=vector_field,
                 )
             ]
-        except Exception:
-            req["vector_queries"] = [{
-                "kind": "vector",
-                "vector": list(vector),
-                "k": max(config.top_k, config.rerank_top_n),
-                "fields": vector_field,
-            }]
 
     if config.use_semantic_ranker:
         if not config.use_bm25:

@@ -90,3 +90,11 @@ extend-immutable-calls = [
     "fastapi.Body", "fastapi.Depends", "fastapi.File",
     "fastapi.Form", "fastapi.Query",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# These three are process entry points that can be run directly (e.g. from a
+# container without an editable install), so each bootstraps sys.path before
+# importing rag_core - which necessarily puts imports after other statements.
+"apps/api/main.py" = ["E402"]
+"apps/evaluator/cli.py" = ["E402"]
+"apps/ingest/main.py" = ["E402"]

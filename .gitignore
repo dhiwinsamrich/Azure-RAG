@@ -7,6 +7,8 @@ __pycache__/
 .ruff_cache/
 
 # Local data
+.env.local
+.env*.local
 *.db
 .judge_cache.db
 .parsed_cache/

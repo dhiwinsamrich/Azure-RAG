@@ -25,6 +25,24 @@ TokenCounter = Callable[[str], int]
 _WORD = re.compile(r"\S+")
 _HAS_CONTENT = re.compile(r"[A-Za-z0-9]")
 
+_UNSAFE_KEY_CHARS = re.compile(r"[^A-Za-z0-9_=-]+")
+
+
+def sanitize_doc_id(name: str) -> str:
+    """Make a document id safe to use as (a prefix of) an Azure AI Search key.
+
+    Azure AI Search document keys allow only letters, digits, underscore,
+    dash and equals sign. A doc_id is taken verbatim from an uploaded
+    filename - "Q3 2024 Report (Final).pdf" would otherwise produce a chunk
+    id with spaces and parentheses, which the real index rejects outright.
+    This must run once, at the point doc_id is first derived, so every chunk
+    id, cache path and search filter built from it downstream stays
+    consistent - sanitizing only the final chunk id would leave the stored
+    `doc_id` field disagreeing with the id's own prefix.
+    """
+    safe = _UNSAFE_KEY_CHARS.sub("_", name).strip("_")
+    return safe or "document"
+
 
 def approx_tokens(text: str) -> int:
     """Cheap token estimate: ~4 chars/token, floored by the word count.

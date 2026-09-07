@@ -7,8 +7,11 @@ credentials. Adapters satisfy the `ChatModel` / `Embedder` / `Searcher`
 protocols, so swapping providers is a settings change, not a rewrite.
 
 Auth differs by service, deliberately:
-  * Azure services use DefaultAzureCredential - your `az login` locally, the
-    managed identity in Container Apps. No Azure key is ever in config.
+  * Azure services prefer DefaultAzureCredential - your `az login` locally,
+    the managed identity in Container Apps - and fall back to an admin key
+    (`search_credential` / `docintel_credential`) only when one is explicitly
+    configured. The key path exists for a portfolio setup that has not gone
+    through RBAC yet; production should leave those settings empty.
   * The Gemini API is key-based. The key stays out of config and images by
     living in Key Vault and being fetched at runtime with that same managed
     identity (`resolve_gemini_api_key`).

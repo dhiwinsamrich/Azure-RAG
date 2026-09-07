@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import math
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -242,7 +241,9 @@ async def ingest_preview(file: UploadFile = File(...)) -> dict[str, Any]:
     Free and instant: it is the loop for tuning chunking, which is the setting
     that drives retrieval quality more than any other.
     """
-    from rag_core.chunking import LayoutChunker
+    from pathlib import Path as _Path
+
+    from rag_core.chunking import LayoutChunker, sanitize_doc_id
     from rag_core.clients import build_parser
 
     from apps.ingest.pipeline import IngestPipeline
@@ -252,10 +253,14 @@ async def ingest_preview(file: UploadFile = File(...)) -> dict[str, Any]:
     pipeline = IngestPipeline(
         parser=build_parser(s), embedder=None, searcher=None, settings=s
     )
-    doc_id = (file.filename or "upload").rsplit(".", 1)[0]
+    name = _Path(file.filename or "upload")
+    doc_id = sanitize_doc_id(name.stem)
 
     try:
-        parsed, _ = await pipeline.parse(doc_id, content)
+        # A markdown/text upload is always parsed locally, even when
+        # PARSER_BACKEND is azure - Document Intelligence expects a PDF or
+        # office document, not raw text bytes.
+        parsed, _ = await pipeline.parse(doc_id, content, file_suffix=name.suffix)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(400, f"parse failed: {exc}") from exc
 
@@ -291,6 +296,9 @@ async def ingest_upload(
     the check, because a keyword heuristic will eventually be wrong and a hard
     block with no escape hatch is worse than a warning.
     """
+    from pathlib import Path as _Path
+
+    from rag_core.chunking import sanitize_doc_id
     from rag_core.clients import build_embedder, build_parser, build_searcher
     from rag_core.indexing import chunk_to_document
 
@@ -303,10 +311,11 @@ async def ingest_upload(
     pipeline = IngestPipeline(
         parser=build_parser(s), embedder=embedder, searcher=searcher, settings=s
     )
-    doc_id = (file.filename or "upload").rsplit(".", 1)[0]
+    name = _Path(file.filename or "upload")
+    doc_id = sanitize_doc_id(name.stem)
 
     try:
-        parsed, from_cache = await pipeline.parse(doc_id, content)
+        parsed, from_cache = await pipeline.parse(doc_id, content, file_suffix=name.suffix)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(400, f"parse failed: {exc}") from exc
 
@@ -410,7 +419,7 @@ async def document_chunks(doc_id: str) -> dict[str, Any]:
     doc_vectors: dict[str, list[float]] = {}
     if hasattr(searcher, "docs"):
         for cid, d in searcher.docs.items():
-            did = d.get("doc_id") or cid.split("::")[0]
+            did = d.get("doc_id") or (cid.split("__")[0] if "__" in cid else cid.split("::")[0])
             if did == doc_id and d.get("content_vector"):
                 doc_vectors[cid] = d["content_vector"]
 
@@ -489,7 +498,13 @@ async def document_chunks(doc_id: str) -> dict[str, Any]:
                     "chunks": views,
                 }
         except Exception as exc:
-            pass
+            # A search-service failure (auth, bad filter, unreachable index)
+            # must not be reported as "document not found" - that sends
+            # anyone debugging a real Azure Search problem looking in the
+            # wrong place entirely.
+            raise HTTPException(
+                502, f"failed to fetch chunks from the search index: {exc}"
+            ) from exc
 
         raise HTTPException(404, f"no chunks stored for {doc_id}")
 
