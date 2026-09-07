@@ -18,21 +18,23 @@ Docs: [architecture](ARCHITECTURE.md) (file-by-file) ·
 
 | Area | State |
 |---|---|
-| Core library (`backend/libs/rag_core`) | Implemented, 97 tests passing |
-| API (`backend/apps/api`) | Implemented, tested end to end with fakes |
-| Ingestion job (`backend/apps/ingest`) | Implemented, tested with fakes |
-| Evaluator + CLI (`backend/apps/evaluator`) | Implemented; RAGAS path needs Azure |
-| Web app (`frontend/`) | Ask + Quality screens, typechecks and builds |
-| Infrastructure (`backend/infra`) | Bicep, not yet deployed |
+| Core library (`backend/libs/rag_core`) | Implemented, 195 tests passing |
+| API (`backend/apps/api`) | Implemented; verified end to end against a **live** Azure deployment |
+| Ingestion job (`backend/apps/ingest`) | Implemented; upload also available through the web UI |
+| Evaluator + CLI (`backend/apps/evaluator`) | Implemented; RAGAS path exercised against real Azure + Gemini |
+| Web app (`frontend/`) | Ask, Corpus (upload/inspect/delete) and Quality screens - all live |
+| Infrastructure (`backend/infra`) | Bicep, plus a Docker Compose path for a single-machine deploy |
 | CI/CD (`.azure-pipelines`) | Written, not yet run |
-| Gemini adapters | Implemented against the current SDK docs, **never run against the live API** |
+| Gemini adapters | Verified against the live API - generation, embeddings and the eval judge |
 
-Nothing here has been run against live Azure resources or a real corpus — see
-[Deploying](#deploying).
+A reference environment (real Azure AI Search with hybrid + semantic ranking,
+real Document Intelligence, real Gemini) has been deployed and produces
+verified, cited answers end to end. Resource names are intentionally left out
+of this README; see [Deploying](#deploying) to stand up your own.
 
 ---
 
-## The three ideas worth reading the code for
+## Five ideas worth reading the code for
 
 **1. Citations are verified, not trusted.**
 The model returns `{answer, citations:[{chunk_id, quoted_span}]}` as structured
@@ -60,39 +62,59 @@ tests drive the whole pipeline through those same protocols with fakes.
 metric needs no migration and no UI change. The dashboard pivots generically,
 and `reason` stores the judge's justification so a low score can be explained.
 
+**5. An unrelated document in the index is a retrieval bug, not clutter.**
+[`relevance.py`](backend/libs/rag_core/relevance.py) screens every upload
+against six categories of financial evidence (filing type, statements,
+metrics, fiscal period, monetary amounts, regulatory language) before it is
+embedded and indexed - a single off-topic 92-chunk upload was enough to
+out-rank real filings on a plain query for "revenue". Scoping a question to
+specific `doc_ids` (never inferred from the question text) is the second half
+of the same fix - see [`ScopeSelector`](frontend/components/ScopeSelector.tsx).
+
 ---
 
 ## Layout
 
 ```
 backend/
-  libs/rag_core/      pure logic - no Azure SDK imports at module level
-    chunking.py       layout-aware chunker (never splits a table)
-    tables.py         cross-page table reconciliation
-    citations.py      the programmatic hallucination check
-    numerics.py       financial figure parsing and scale comparison
-    retrieval.py      filter extraction, hybrid request, RRF
-    generation.py     citation-constrained prompt + JSON schema
-    pipeline.py       filter -> retrieve -> rank -> generate -> validate
-    clients.py        Azure adapters (imports deferred into functions)
-    store.py          trace + eval store (SQLite locally, Postgres in Azure)
-    evaluation/       custom metrics, RAGAS wiring, CI gate
-  apps/api            FastAPI: chat (SSE), search debug, eval read API
-  apps/ingest         Container Apps Job: queue-driven, resumable
-  apps/evaluator      eval CLI: run / gate / compare / seed
-  tests/              97 tests, no Azure account needed
-  evals/              golden set, ablation configs, gate thresholds
-  infra/              Bicep + the PostgreSQL schema
-  deploy/             api and jobs Dockerfiles
+  libs/rag_core/       pure logic - no Azure SDK imports at module level
+    chunking.py        layout-aware chunker (never splits a table)
+    tables.py          cross-page table reconciliation
+    citations.py       the programmatic hallucination check
+    numerics.py        financial figure parsing and scale comparison
+    relevance.py        the financial-document evidence gate
+    retrieval.py         filter extraction, hybrid request, RRF
+    generation.py         citation-constrained prompt + JSON schema
+    pipeline.py            filter -> retrieve -> rank -> generate -> validate
+    clients.py              Azure + Gemini adapters, key/managed-identity auth
+    local_search.py          free-tier BM25 + cosine index (no Azure needed)
+    local_parse.py            free-tier markdown/text parser (no Doc Intel needed)
+    store.py                   trace + eval store (SQLite locally, Postgres in Azure)
+    evaluation/                  custom metrics, RAGAS wiring, CI gate
+  apps/api                   FastAPI: chat (SSE), corpus upload/inspect/delete, eval API
+  apps/ingest                Container Apps Job: queue-driven, resumable
+  apps/evaluator              eval CLI: run / gate / compare / seed
+  tests/                       195 tests, no Azure account needed
+  evals/                        golden set (+ a local variant), ablation configs, gate thresholds
+  infra/                         Bicep + the PostgreSQL schema
+  deploy/                         api and jobs Dockerfiles
   pyproject.toml
 
-frontend/             Next.js 15: Ask + Quality screens
-  app/                routes, incl. the SSE proxy route handler
-  components/         MetricTile, AblationMatrix
-  lib/                types, SSE reader
+frontend/                        Next.js 15 + shadcn/ui: Ask, Corpus and Quality screens
+  app/
+    page.tsx                     Ask - streaming chat, citation markers, document scope selector
+    corpus/                       upload, chunk explorer, embedding inspector, delete
+    eval/                          quality dashboard: KPI tiles, radar, ablation, run drilldown
+    api/                            route handlers proxying chat / corpus / eval / status to the API
+  components/
+    ScopeSelector, RelevanceVerdict, ChunkExplorer, DocumentEmbeddingModal,
+    EvalCharts, QualityRadarChart, QuestionTypeBreakdownChart, RunDrilldownDrawer
+    evilcharts/                   animated chart primitives (bar/line, tooltip, legend, brush)
+    ui/                            shadcn primitives (button, card, dialog, table, tabs, ...)
   Dockerfile
 
-.azure-pipelines/     CI (with the eval gate) and nightly evaluation
+.azure-pipelines/                 CI (with the eval gate) and nightly evaluation
+docker-compose.yml                 single-command local stack (backend + frontend)
 ```
 
 The core library imports no Azure SDK at module level, which is why the whole
@@ -158,7 +180,7 @@ page and nothing else. That is why the local parser exists.
 ```bash
 python -m venv .venv && .venv/Scripts/activate   # source .venv/bin/activate
 pip install -e "./backend[api,dev]"
-cd backend && pytest tests -q                     # 97 passing, no Azure needed
+cd backend && pytest tests -q                     # 195 passing, no Azure needed
 ```
 
 API and web (the API needs Azure endpoints configured to answer real queries):
@@ -193,6 +215,65 @@ python -m apps.ingest.main --queue            # drain the storage queue
 
 ---
 
+## Running with Docker Compose
+
+The whole stack - API and web app, wired to each other - in one command.
+`docker-compose.yml` defaults to local mode (`SEARCH_BACKEND=local`,
+`PARSER_BACKEND=local`) so it runs with nothing configured:
+
+```bash
+docker compose up --build
+# http://localhost:3000
+```
+
+Point it at real Azure by exporting the same variables `backend/.env.example`
+documents before running it (`SEARCH_ENDPOINT`, `SEARCH_KEY` or managed
+identity, `DOC_INTELLIGENCE_ENDPOINT`, `GEMINI_API_KEY`, ...) - the compose
+file passes them straight through to the container. **CORS is currently wide
+open** (`allow_origins=["*"]`) regardless of the compose file's unused
+`CORS_ORIGINS` variable; tighten `apps/api/main.py` before exposing this
+beyond localhost.
+
+---
+
+## Corpus management: upload, inspect, and the financial-document gate
+
+The `/corpus` screen is where a document actually enters the system, and it
+exists because early testing surfaced a real failure: a 92-chunk resume
+upload out-ranked two real 10-Ks on the query "revenue," because nothing
+stopped an unrelated document from competing for every question asked
+afterwards.
+
+**Preview vs. ingest.** Preview parses and chunks a file with no embedding
+call and no index write - the loop for tuning chunking, since that setting
+drives retrieval quality more than any other and shouldn't cost anything to
+inspect. Ingest also embeds and writes to the index. The chunk explorer shows
+the context header the chunker prepended, the token count, whether a table
+was kept whole, and (once embedded) a sparkline of the first 48 vector
+dimensions.
+
+**The relevance gate.** Every upload is scored against six categories of
+financial evidence before indexing (filing type, financial statements,
+metrics, fiscal period, monetary amounts, regulatory language); documents
+matching fewer than three are refused with the specific evidence they were
+missing, and an explicit override is available for a false rejection. This is
+a deterministic, free, zero-model-call classifier - the LLM-based classifier
+and the accuracy/cost comparison against it are Phase 9, not yet built.
+
+**Deletion actually deletes.** `DELETE /api/documents/{doc_id}` removes the
+document's chunks - and their embeddings - from whichever index is active
+(local or Azure), not only from the metadata store; leaving stale vectors
+behind after a "delete" was a real bug caught while building this.
+
+**Document ids are sanitized for Azure's key constraints.** Azure AI Search
+document keys allow only letters, digits, `_`, `-` and `=`. A raw filename
+like `Q3 2024 Report (Final).pdf` would otherwise produce a chunk key Azure
+rejects outright; `sanitize_doc_id()` runs once, at the point a doc_id is
+first derived from a filename, so every chunk id, cache path and search
+filter built from it downstream stays consistent.
+
+---
+
 ## Deploying
 
 ```bash
@@ -213,8 +294,15 @@ image layers: `main.bicep` writes it to Key Vault, and `resolve_gemini_api_key`
 fetches it at runtime with the same managed identity. Locally it comes from
 `.env` instead. Pass it at deploy time with `-p geminiApiKey=<key>`.
 
-`backend/infra/main.bicep` has **not been deployed**; treat the first `what-if` run as
-part of the work.
+A reference environment built from this template is live and has served real,
+cited answers end to end - so `what-if` first, but the path is proven.
+
+**RBAC is the default, a key is the on-ramp.** `search_credential()` and
+`docintel_credential()` fall back to an `AzureKeyCredential` when
+`SEARCH_KEY` / `DOC_INTELLIGENCE_KEY` are set, and use
+`DefaultAzureCredential` (managed identity / `az login`) otherwise. The key
+path exists so a personal setup does not need full RBAC role assignments on
+day one; leave those settings empty in anything beyond a portfolio deploy.
 
 ---
 
@@ -285,6 +373,13 @@ The gate is deliberately boring to run and hard to bypass: floors plus a
 maximum regression against the stored baseline, in
 [`backend/evals/thresholds.yaml`](backend/evals/thresholds.yaml).
 
+[`evals/golden_set_local.yaml`](backend/evals/golden_set_local.yaml) is a
+second golden set scoped to the two synthetic sample filings in
+`backend/corpus/` - the default `golden_set.yaml` targets a real corpus and
+scores zero against the sample data, so use the `_local` variant
+(`--golden-set evals/golden_set_local.yaml`) when demoing without real
+filings loaded.
+
 ---
 
 ## What is deliberately not built yet
@@ -293,6 +388,13 @@ Phase 9 of the plan: document classification, structured financial extraction
 with accounting-identity checks, and manager-letter tone scoring. The
 `extraction` table and `DocType` enum are in place for them.
 
-Also outstanding: the pdf.js citation viewer with bounding-box overlay, the
-per-question drilldown screen, the online sampling loop, and OpenTelemetry
-export (the span fields are listed in the plan but not yet emitted).
+Also outstanding: the pdf.js citation viewer with bounding-box overlay (a
+citation currently resolves to a page number, not a highlighted region), the
+online 5% sampling loop against production traffic, and OpenTelemetry export
+(the span fields are listed in the plan but not yet emitted).
+
+The run-history drilldown, the quality radar chart and the embedding
+inspector modal described in the plan **are** built -
+[`RunDrilldownDrawer`](frontend/components/RunDrilldownDrawer.tsx),
+[`QualityRadarChart`](frontend/components/QualityRadarChart.tsx), and
+[`DocumentEmbeddingModal`](frontend/components/DocumentEmbeddingModal.tsx).
