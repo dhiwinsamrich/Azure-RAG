@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from rag_core.evaluation.tracking import log_run
+from rag_core.evaluation.tracking import get_run, log_run
 from rag_core.schemas import EvalResult, EvalRun, GateOutcome, MetricValue, RetrievalConfig
 
 
@@ -64,6 +64,34 @@ def test_log_run_persists_params_metrics_and_tags(tmp_path):
     assert rows.loc[0, "metrics.citation_validity"] == 1.0
     assert rows.loc[0, "metrics.regression_pass_rate"] == 0.97
     assert rows.loc[0, "params.use_bm25"] == "False"
+
+
+def test_get_run_returns_full_detail_including_the_gate_artifact(tmp_path):
+    pytest.importorskip("mlflow")
+
+    uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
+    run = _run(config_id="hybrid_semantic")
+    config = RetrievalConfig(id="hybrid_semantic")
+    gate = GateOutcome(
+        passed=False, failures=["mrr: 0.500 < floor 0.600"],
+        details={"mrr": {"value": 0.5, "min": 0.6}},
+    )
+
+    run_id = log_run(run, config, tracking_uri=uri, experiment="test-detail", gate=gate)
+    assert run_id is not None
+
+    detail = get_run(uri, run_id)
+    assert detail is not None
+    assert detail["config_id"] == "hybrid_semantic"
+    assert detail["params"]["top_k"] == "10"
+    assert detail["gate_outcome"]["passed"] is False
+    assert detail["gate_outcome"]["details"]["mrr"]["value"] == 0.5
+
+
+def test_get_run_is_none_for_an_unknown_run_id(tmp_path):
+    pytest.importorskip("mlflow")
+    uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
+    assert get_run(uri, "does-not-exist") is None
 
 
 def test_log_run_never_raises_on_a_bad_tracking_uri():

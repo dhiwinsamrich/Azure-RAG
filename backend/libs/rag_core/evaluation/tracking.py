@@ -123,3 +123,39 @@ def list_runs(tracking_uri: str, experiment: str, limit: int = 50) -> list[dict[
     except Exception as exc:  # noqa: BLE001
         print(f"mlflow read skipped: {type(exc).__name__}: {exc}")
         return []
+
+
+def get_run(tracking_uri: str, run_id: str) -> dict[str, Any] | None:
+    """One run's full detail for the drilldown drawer, including the gate
+    outcome artifact (thresholds, baseline, drop) when `gate=` logged one."""
+    try:
+        import mlflow
+        from mlflow.tracking import MlflowClient
+    except ImportError:
+        return None
+
+    try:
+        mlflow.set_tracking_uri(tracking_uri)
+        r = MlflowClient().get_run(run_id)
+        gate_outcome: dict[str, Any] | None
+        try:
+            gate_outcome = mlflow.artifacts.load_dict(f"runs:/{run_id}/gate_outcome.json")
+        except Exception:
+            gate_outcome = None
+        return {
+            "run_id": r.info.run_id,
+            "run_name": r.data.tags.get("mlflow.runName", ""),
+            "status": r.info.status,
+            "start_time": r.info.start_time,
+            "end_time": r.info.end_time,
+            "config_id": r.data.tags.get("config_id", ""),
+            "trigger": r.data.tags.get("trigger", ""),
+            "git_sha": r.data.tags.get("git_sha", ""),
+            "gate_passed": r.data.tags.get("gate_passed", ""),
+            "metrics": dict(r.data.metrics),
+            "params": dict(r.data.params),
+            "gate_outcome": gate_outcome,
+        }
+    except Exception as exc:  # noqa: BLE001
+        print(f"mlflow read skipped: {type(exc).__name__}: {exc}")
+        return None

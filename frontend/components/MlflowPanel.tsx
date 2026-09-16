@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
-import { GitCommit, Workflow } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Eye, GitCommit, Workflow } from "lucide-react";
 import { InteractiveTrendChart } from "@/components/EvalCharts";
 import { MetricTile } from "@/components/MetricTile";
+import { MlflowRunDrawer } from "@/components/MlflowRunDrawer";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -26,6 +28,7 @@ const TRACKED_METRICS = [
 ];
 
 export function MlflowPanel({ runs }: { runs: MlflowRun[] }) {
+  const [selectedRun, setSelectedRun] = useState<MlflowRun | null>(null);
   const sorted = useMemo(
     () => [...runs].sort((a, b) => b.start_time - a.start_time),
     [runs],
@@ -99,9 +102,10 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db`}
         />
         <MetricTile
           label="Regression pass rate"
+          metricKey="regression_pass_rate"
           value={latest?.metrics.regression_pass_rate}
           previous={previous?.metrics.regression_pass_rate}
-          threshold={1.0}
+          threshold={THRESHOLDS.regression_pass_rate}
         />
         <MetricTile
           label="MRR"
@@ -149,11 +153,16 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db`}
                 <TableHead className="text-right">MRR</TableHead>
                 <TableHead className="text-right">Regression</TableHead>
                 <TableHead>When</TableHead>
+                <TableHead className="w-[60px] text-right">Inspect</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sorted.map((r) => (
-                <TableRow key={r.run_id} className="border-border/60 hover:bg-muted/20">
+                <TableRow
+                  key={r.run_id}
+                  className="group cursor-pointer border-border/60 hover:bg-muted/20"
+                  onClick={() => setSelectedRun(r)}
+                >
                   <TableCell className="font-mono text-xs font-semibold text-foreground">
                     {r.run_name || r.run_id.slice(0, 8)}
                   </TableCell>
@@ -213,12 +222,33 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db`}
                       minute: "2-digit",
                     })}
                   </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRun(r);
+                      }}
+                      className="h-7 w-7 p-0 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                      title="Inspect run: full config, metrics, and gate outcome"
+                    >
+                      <Eye className="size-3.5" />
+                      <span className="sr-only">Inspect run</span>
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <MlflowRunDrawer
+        run={selectedRun}
+        isOpen={selectedRun !== null}
+        onClose={() => setSelectedRun(null)}
+      />
     </div>
   );
 }

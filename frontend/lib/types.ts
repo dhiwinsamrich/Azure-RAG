@@ -89,6 +89,23 @@ export type MlflowRun = {
   params: Record<string, string>;
 };
 
+export type MlflowGateDetail = {
+  value: number;
+  min?: number;
+  baseline?: number;
+  drop?: number;
+};
+
+export type MlflowRunDetail = MlflowRun & {
+  status: string;
+  end_time: number;
+  gate_outcome: {
+    passed: boolean;
+    failures: string[];
+    details: Record<string, MlflowGateDetail>;
+  } | null;
+};
+
 export type CompareMatrix = {
   metrics: string[];
   configs: Record<string, Record<string, number>>;
@@ -107,6 +124,7 @@ export const THRESHOLDS: Record<string, number> = {
   answer_relevancy: 0.8,
   context_precision: 0.75,
   context_recall: 0.8,
+  regression_pass_rate: 1.0,
 };
 
 export const METRIC_LABELS: Record<string, string> = {
@@ -122,6 +140,7 @@ export const METRIC_LABELS: Record<string, string> = {
   answer_relevancy: "Answer relevancy",
   context_precision: "Context precision",
   context_recall: "Context recall",
+  regression_pass_rate: "Regression pass rate",
 };
 
 export const METRIC_DESCRIPTIONS: Record<string, string> = {
@@ -133,6 +152,7 @@ export const METRIC_DESCRIPTIONS: Record<string, string> = {
   fiscal_period_correctness: "Verifies that figures are attributed to the exact requested fiscal year (e.g. FY23 vs FY22).",
   citation_precision: "Share of cited chunks that were actually relevant to the question.",
   citation_recall: "Share of all required gold chunks that were cited in the answer.",
+  regression_pass_rate: "Fraction of the pytest suite that passed when this run was logged - the validator's own regression tests among them.",
 };
 
 export const METRIC_SHORT_EXPLANATIONS: Record<string, string> = {
@@ -142,6 +162,7 @@ export const METRIC_SHORT_EXPLANATIONS: Record<string, string> = {
   refusal_correct: "Honesty on missing data",
   numeric_exactness: "Exact dollar & % figures",
   fiscal_period_correctness: "Correct fiscal year attribution",
+  regression_pass_rate: "pytest suite pass rate at this commit",
 };
 
 export function label(metric: string): string {
