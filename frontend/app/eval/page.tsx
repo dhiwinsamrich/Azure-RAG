@@ -1,6 +1,6 @@
 import { EvalDashboardClient } from "@/app/eval/EvalDashboardClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { type CompareMatrix, type RunSummary } from "@/lib/types";
+import { type CompareMatrix, type MlflowRun, type RunSummary } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +31,7 @@ export default async function EvalPage() {
     `/api/eval/compare?metrics=${HEADLINE.join(",")}`,
     { metrics: [], configs: {} },
   );
+  const mlflowRuns = await fetchJson<MlflowRun[]>("/api/eval/mlflow/runs?limit=50", []);
 
   if (!runs || runs.length === 0) {
     return (
@@ -54,6 +55,6 @@ python -m apps.evaluator.cli --golden-set evals/golden_set_local.yaml run \\
     );
   }
 
-  return <EvalDashboardClient runs={runs} matrix={matrix} />;
+  return <EvalDashboardClient runs={runs} matrix={matrix} mlflowRuns={mlflowRuns} />;
 }
 

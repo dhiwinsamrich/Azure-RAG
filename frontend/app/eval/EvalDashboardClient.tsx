@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { AblationChart, InteractiveTrendChart } from "@/components/EvalCharts";
 import { MetricTile } from "@/components/MetricTile";
+import { MlflowPanel } from "@/components/MlflowPanel";
 import { QualityRadarChart } from "@/components/QualityRadarChart";
 import { RunDrilldownDrawer } from "@/components/RunDrilldownDrawer";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ import {
   label,
   THRESHOLDS,
   type CompareMatrix,
+  type MlflowRun,
   type RunSummary,
 } from "@/lib/types";
 
@@ -60,9 +62,10 @@ const HEADLINE = [
 interface EvalDashboardClientProps {
   runs: RunSummary[];
   matrix: CompareMatrix;
+  mlflowRuns: MlflowRun[];
 }
 
-export function EvalDashboardClient({ runs, matrix }: EvalDashboardClientProps) {
+export function EvalDashboardClient({ runs, matrix, mlflowRuns }: EvalDashboardClientProps) {
   const [selectedRun, setSelectedRun] = useState<RunSummary | null>(null);
   const [configFilter, setConfigFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -264,6 +267,9 @@ export function EvalDashboardClient({ runs, matrix }: EvalDashboardClientProps) 
           </Card>
         )}
       </div>
+
+      {/* MLflow Regression Tracking */}
+      <MlflowPanel runs={mlflowRuns} />
 
       {/* Upgraded Detailed Run History */}
       <Card className="border-border/60 shadow-sm">

@@ -604,6 +604,14 @@ async def run_questions(run_id: str) -> list[dict[str, Any]]:
     return out
 
 
+@api.get("/eval/mlflow/runs")
+async def mlflow_runs(limit: int = Query(50, ge=1, le=200)) -> list[dict[str, Any]]:
+    from rag_core.evaluation.tracking import list_runs
+
+    s = settings()
+    return list_runs(s.mlflow_tracking_uri, s.mlflow_experiment, limit)
+
+
 @api.get("/eval/compare")
 async def compare(metrics: str = Query(",".join(ALL_METRICS[:4]))) -> dict[str, Any]:
     """Configs x metrics - renders the ablation matrix directly."""

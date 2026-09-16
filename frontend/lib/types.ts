@@ -77,6 +77,18 @@ export type RunSummaryDetailed = {
   by_question_type: Record<string, Record<string, number>>;
 };
 
+export type MlflowRun = {
+  run_id: string;
+  run_name: string;
+  start_time: number;
+  config_id: string;
+  trigger: string;
+  git_sha: string;
+  gate_passed: "True" | "False" | "";
+  metrics: Record<string, number>;
+  params: Record<string, string>;
+};
+
 export type CompareMatrix = {
   metrics: string[];
   configs: Record<string, Record<string, number>>;

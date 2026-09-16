@@ -16,6 +16,7 @@ actual eval run or CI gate.
 from __future__ import annotations
 
 import subprocess
+from typing import Any
 
 from ..schemas import EvalRun, GateOutcome, RetrievalConfig
 
@@ -81,3 +82,44 @@ def log_run(
     except Exception as exc:  # noqa: BLE001
         print(f"mlflow logging skipped: {type(exc).__name__}: {exc}")
         return None
+
+
+def list_runs(tracking_uri: str, experiment: str, limit: int = 50) -> list[dict[str, Any]]:
+    """Read the tracked runs back out for the frontend dashboard.
+
+    Returns the MlflowClient's own Run objects flattened to plain dicts rather
+    than going through mlflow.search_runs' pandas DataFrame, which turns
+    missing per-run metrics into columns of NaN that need reconstituting.
+    """
+    try:
+        import mlflow
+        from mlflow.tracking import MlflowClient
+    except ImportError:
+        return []
+
+    try:
+        mlflow.set_tracking_uri(tracking_uri)
+        client = MlflowClient()
+        exp = client.get_experiment_by_name(experiment)
+        if exp is None:
+            return []
+        runs = client.search_runs(
+            [exp.experiment_id], order_by=["start_time DESC"], max_results=limit,
+        )
+        return [
+            {
+                "run_id": r.info.run_id,
+                "run_name": r.data.tags.get("mlflow.runName", ""),
+                "start_time": r.info.start_time,
+                "config_id": r.data.tags.get("config_id", ""),
+                "trigger": r.data.tags.get("trigger", ""),
+                "git_sha": r.data.tags.get("git_sha", ""),
+                "gate_passed": r.data.tags.get("gate_passed", ""),
+                "metrics": dict(r.data.metrics),
+                "params": dict(r.data.params),
+            }
+            for r in runs
+        ]
+    except Exception as exc:  # noqa: BLE001
+        print(f"mlflow read skipped: {type(exc).__name__}: {exc}")
+        return []

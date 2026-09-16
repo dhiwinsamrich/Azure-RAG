@@ -15,7 +15,9 @@ import { EvilBarChart } from "@/components/evilcharts/charts/recharts-bar-chart"
 import { EvilLineChart } from "@/components/evilcharts/charts/recharts-line-chart";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { label, type RunSummary } from "@/lib/types";
+import { label } from "@/lib/types";
+
+type TrendRun = { id: string; config_id: string; doc_ids?: string[]; metrics: Record<string, number> };
 
 /** Ablation: one bar per retrieval config, grouped by metric. */
 export function AblationChart({
@@ -81,19 +83,19 @@ export function AblationChart({
 export function InteractiveTrendChart({
   runs,
   defaultMetric = "mrr",
-}: {
-  runs: RunSummary[];
-  defaultMetric?: string;
-}) {
-  const availableMetrics = [
+  availableMetrics = [
     "mrr",
     "context_hit_rate",
     "citation_validity",
     "refusal_correct",
     "numeric_exactness",
     "fiscal_period_correctness",
-  ];
-
+  ],
+}: {
+  runs: TrendRun[];
+  defaultMetric?: string;
+  availableMetrics?: string[];
+}) {
   const [selectedMetric, setSelectedMetric] = useState(defaultMetric);
 
   const data = [...runs]
