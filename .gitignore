@@ -16,6 +16,8 @@ __pycache__/
 .env
 *.log
 .local_index.json
+mlruns/
+mlartifacts/
 
 # Node
 node_modules/

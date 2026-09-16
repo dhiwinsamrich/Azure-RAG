@@ -50,6 +50,7 @@ eval = [
     "azure-ai-evaluation>=1.0.0",
     "typer>=0.12",
     "rich>=13.7",
+    "mlflow>=2.16",
 ]
 telemetry = [
     "opentelemetry-sdk>=1.26",

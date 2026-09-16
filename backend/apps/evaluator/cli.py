@@ -14,8 +14,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import subprocess
 import sys
+import tempfile
 import uuid
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # Ensure libs directory is on sys.path
@@ -31,9 +34,37 @@ from rag_core.evaluation.custom import evaluate as evaluate_custom
 from rag_core.evaluation.custom import false_refusal_rate
 from rag_core.evaluation.gate import evaluate_gate, load_thresholds
 from rag_core.evaluation.ragas_runner import judge_name
+from rag_core.evaluation.tracking import log_run
 from rag_core.pipeline import RagPipeline
 from rag_core.schemas import EvalResult, EvalRun, GoldenQuestion, Trace
 from rag_core.store import Store, load_golden_set
+
+
+def regression_pass_rate() -> float | None:
+    """Run the pytest regression suite (the validator's own tests among them)
+    and return the fraction that passed, or None if the run couldn't be read.
+
+    Shells out rather than calling pytest's Python API in-process because the
+    eval CLI and the test suite must not share import state - the whole point
+    is measuring the suite as it runs in CI, unmodified by this process.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        report = Path(tmp) / "junit.xml"
+        subprocess.run(
+            [sys.executable, "-m", "pytest", "-q", "--tb=no", f"--junit-xml={report}"],
+            cwd=_root, capture_output=True, text=True,
+        )
+        if not report.exists():
+            return None
+        root = ET.parse(report).getroot()
+        suite = root if root.tag == "testsuite" else root.find("testsuite")
+        if suite is None:
+            return None
+        total = int(suite.get("tests", 0))
+        if total == 0:
+            return None
+        failed = int(suite.get("failures", 0)) + int(suite.get("errors", 0))
+        return (total - failed) / total
 
 
 def build_pipeline() -> RagPipeline:
@@ -120,11 +151,24 @@ def cmd_run(args: argparse.Namespace) -> int:
         for qt in sorted(by_type):
             parts = " ".join(f"{k}={v:.2f}" for k, v in sorted(by_type[qt].items()))
             print(f"  {qt:<18} {parts}")
+
+    if not args.no_mlflow:
+        pass_rate = regression_pass_rate() if args.regression else None
+        if pass_rate is not None:
+            print(f"  {'regression_pass_rate':<32} {pass_rate:.3f}")
+        mlflow_id = log_run(
+            run, config, tracking_uri=settings.mlflow_tracking_uri,
+            experiment=settings.mlflow_experiment, regression_pass_rate=pass_rate,
+        )
+        if mlflow_id:
+            print(f"\nlogged to mlflow: run_id={mlflow_id}")
+            print(f"  mlflow ui --backend-store-uri {settings.mlflow_tracking_uri}")
     return 0
 
 
 def cmd_gate(args: argparse.Namespace) -> int:
     """CI gate: deterministic metrics only, compared to the stored baseline."""
+    settings = get_settings()
     store = Store(args.db)
     config = get_config(args.config)
     questions = load_golden_set(args.golden_set)[: args.limit]
@@ -141,6 +185,17 @@ def cmd_gate(args: argparse.Namespace) -> int:
 
     outcome = evaluate_gate(run, load_thresholds(args.thresholds), baseline)
     print(json.dumps(outcome.model_dump(), indent=2))
+
+    if not args.no_mlflow:
+        pass_rate = regression_pass_rate() if args.regression else None
+        mlflow_id = log_run(
+            run, config, tracking_uri=settings.mlflow_tracking_uri,
+            experiment=settings.mlflow_experiment,
+            regression_pass_rate=pass_rate, gate=outcome,
+        )
+        if mlflow_id:
+            print(f"logged to mlflow: run_id={mlflow_id}")
+
     if not outcome.passed:
         print("\nQUALITY GATE FAILED", file=sys.stderr)
         for f in outcome.failures:
@@ -182,12 +237,18 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--trigger", default="manual",
                    choices=["manual", "nightly", "ci-gate", "online"])
     r.add_argument("--run-id", default="")
+    r.add_argument("--regression", action="store_true",
+                   help="also run the pytest suite and log its pass rate")
+    r.add_argument("--no-mlflow", action="store_true", help="skip MLflow logging")
     r.set_defaults(func=cmd_run)
 
     g = sub.add_parser("gate", help="CI quality gate")
     g.add_argument("--config", default="hybrid_semantic")
     g.add_argument("--limit", type=int, default=20)
     g.add_argument("--thresholds", default=str(EVALS_DIR / "thresholds.yaml"))
+    g.add_argument("--regression", action="store_true",
+                   help="also run the pytest suite and log its pass rate")
+    g.add_argument("--no-mlflow", action="store_true", help="skip MLflow logging")
     g.set_defaults(func=cmd_gate)
 
     c = sub.add_parser("compare", help="one metric across configs")

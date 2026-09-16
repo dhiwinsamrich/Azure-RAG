@@ -380,6 +380,32 @@ scores zero against the sample data, so use the `_local` variant
 (`--golden-set evals/golden_set_local.yaml`) when demoing without real
 filings loaded.
 
+### Regression tracking with MLflow
+
+The SQLite store above answers "what's the state of quality now"; MLflow
+answers "what did my last change actually do", with every run's retrieval
+config next to its metrics so two iterations are a diff, not a memory
+exercise. `run` and `gate` both log to it automatically — one MLflow run per
+invocation, tagged with `config_id`, `trigger`, `eval_run_id` and the git SHA,
+with every deterministic (and RAGAS, if `--ragas` ran) metric attached:
+
+```bash
+pip install -e ".[eval]"                                 # adds mlflow
+python -m apps.evaluator.cli run --config hybrid_rrf --regression
+#   --regression additionally runs the pytest suite and logs its pass rate
+#   as `regression_pass_rate`, so a validator change and a retrieval-config
+#   change show up in the same comparable view.
+
+mlflow ui --backend-store-uri sqlite:///mlflow.db         # http://localhost:5000
+```
+
+Logging is best-effort: a missing `mlflow` install or an unreachable tracking
+URI prints a one-line warning and the eval run or CI gate still completes and
+returns its real exit code — tracking must never be why a gate passes or
+fails. See [`evaluation/tracking.py`](backend/libs/rag_core/evaluation/tracking.py).
+Skip it per invocation with `--no-mlflow`, or point `MLFLOW_TRACKING_URI` /
+`MLFLOW_EXPERIMENT` at a shared server once there's a team to compare runs with.
+
 ---
 
 ## What is deliberately not built yet

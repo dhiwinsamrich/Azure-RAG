@@ -91,6 +91,14 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite+pysqlite:///./azure_rag.db"
 
+    # SQLite by default - MLflow 3's filesystem store ("file:./mlruns") is in
+    # maintenance mode and raises unless explicitly opted back into. `mlflow ui
+    # --backend-store-uri sqlite:///mlflow.db` reads this with no server to run.
+    # Point at a real tracking server (e.g. Azure Databricks, a hosted MLflow)
+    # by setting MLFLOW_TRACKING_URI once there's a team to share runs with.
+    mlflow_tracking_uri: str = "sqlite:///mlflow.db"
+    mlflow_experiment: str = "financial-rag-eval"
+
     default_config_id: str = "hybrid_semantic"
     online_eval_sample_rate: float = Field(default=0.05, ge=0.0, le=1.0)
 
