@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ShieldCheck } from "lucide-react";
 import { AnswerSkeleton } from "@/components/AnswerSkeleton";
-import { ScopeSelector } from "@/components/ScopeSelector";
+import PromptBar, { MODES, type Mode } from "@/components/PromptBar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { readSse } from "@/lib/sse";
 import type {
   Citation,
@@ -17,13 +17,6 @@ import type {
 } from "@/lib/types";
 
 type Status = "idle" | "streaming" | "done" | "error";
-
-const EXAMPLES = [
-  "How did gross margin change between FY22 and FY23?",
-  "Which segment had the largest operating income in FY23?",
-  "What were total assets at the end of FY23?",
-  "What is the revenue guidance for FY2026?",
-];
 
 export default function AskPage() {
   const [query, setQuery] = useState("");
@@ -37,6 +30,9 @@ export default function AskPage() {
   const [documents, setDocuments] = useState<IndexedDocument[]>([]);
   const [scope, setScope] = useState<string[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
+  const [mode, setMode] = useState<Mode>("Thorough");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -47,9 +43,29 @@ export default function AskPage() {
       .finally(() => setLoadingDocs(false));
   }, []);
 
-  async function ask(e: React.FormEvent, preset?: string) {
-    e.preventDefault();
-    const q = preset ?? query;
+  const scopeKey = scope.join(",");
+  useEffect(() => {
+    if (loadingDocs) return;
+    const ctl = new AbortController();
+    const qs = new URLSearchParams();
+    scope.forEach((d) => qs.append("doc_ids", d));
+    setLoadingSuggestions(true);
+    fetch(`/api/suggestions?${qs}`, { signal: ctl.signal })
+      .then((r) => (r.ok ? r.json() : { suggestions: [] }))
+      .then((d) => setSuggestions(d.suggestions ?? []))
+      .catch((err) => err.name !== "AbortError" && setSuggestions([]))
+      .finally(() => !ctl.signal.aborted && setLoadingSuggestions(false));
+    return () => ctl.abort();
+    // scopeKey stands in for the scope array so a new array with the same ids doesn't refetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeKey, loadingDocs, documents.length]);
+
+  function stop() {
+    abort.current?.abort();
+    setStatus(answer ? "done" : "idle");
+  }
+
+  async function ask(q: string) {
     if (!q.trim()) return;
 
     abort.current?.abort();
@@ -66,7 +82,7 @@ export default function AskPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q, doc_ids: scope }),
+        body: JSON.stringify({ query: q, doc_ids: scope, config_id: MODES[mode].configId }),
         signal: abort.current.signal,
       });
 
@@ -100,52 +116,72 @@ export default function AskPage() {
   }
 
   const thinking = status === "streaming" && !answer;
+  const idle = status === "idle";
+  const totalChunks = documents.reduce((n, d) => n + d.chunk_count, 0);
+  const embedded = documents.filter((d) => d.has_vectors).length;
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Ask the filings</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Answers are grounded in retrieved passages, and every citation is
-          verified against its source before it reaches you.
-        </p>
-      </div>
-
-      <form onSubmit={ask} className="flex gap-2">
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="How did gross margin change between FY22 and FY23?"
-          className="h-11 bg-card"
-        />
-        <Button type="submit" disabled={status === "streaming"} className="h-11 px-6">
-          {status === "streaming" ? "Asking…" : "Ask"}
-        </Button>
-      </form>
-
-      {status === "idle" && (
-        <div className="flex flex-wrap gap-2">
-          {EXAMPLES.map((ex) => (
-            <button
-              key={ex}
-              onClick={(e) => {
-                setQuery(ex);
-                ask(e, ex);
-              }}
-              className="rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              {ex}
-            </button>
-          ))}
+    <div className={`mx-auto w-full max-w-3xl ${idle ? "flex min-h-[calc(100dvh-8.75rem)] flex-col justify-center gap-6" : "space-y-6"}`}>
+      {idle && (
+        <div className="space-y-3 text-center">
+          <Badge
+            variant="outline"
+            className="border-primary/30 bg-primary/10 px-3 py-1 font-mono text-[11px] font-normal text-primary"
+          >
+            <ShieldCheck className="mr-1.5 inline size-3" />
+            Every citation verified
+          </Badge>
+          <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
+            Ask the filings
+          </h1>
+          <p className="mx-auto max-w-xl text-balance text-muted-foreground">
+            Answers are grounded in retrieved passages, and every quote is
+            checked against its source before it reaches you.
+          </p>
         </div>
       )}
 
-      <ScopeSelector
+      <PromptBar
+        value={query}
+        onChange={setQuery}
+        onSubmit={ask}
+        onStop={stop}
+        busy={status === "streaming"}
         documents={documents}
-        selected={scope}
-        onChange={setScope}
-        loading={loadingDocs}
+        scope={scope}
+        onScopeChange={setScope}
+        mode={mode}
+        onModeChange={setMode}
       />
+
+      {idle && (
+        <>
+          <div className="flex min-h-8 flex-wrap justify-center gap-2">
+            {loadingSuggestions &&
+              [64, 80, 56].map((w) => (
+                <Skeleton key={w} className="h-8 rounded-full" style={{ width: `${w * 4}px` }} />
+              ))}
+            {!loadingSuggestions && suggestions.map((ex) => (
+              <button
+                key={ex}
+                onClick={() => {
+                  setQuery(ex);
+                  ask(ex);
+                }}
+                className="rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+
+          {!loadingDocs && (
+            <p className="text-center font-mono text-[11px] text-muted-foreground">
+              {documents.length} documents · {totalChunks} chunks indexed · {embedded} with embeddings
+            </p>
+          )}
+        </>
+      )}
 
       {trace && <FilterChips trace={trace} />}
 
