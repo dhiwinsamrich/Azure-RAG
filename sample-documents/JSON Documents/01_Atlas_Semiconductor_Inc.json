@@ -1,0 +1,41 @@
+{
+  "doc_id": "01_Atlas_Semiconductor_Inc",
+  "company": "Atlas Semiconductor, Inc.",
+  "ticker": "ATLS",
+  "doc_type": "10-K",
+  "fiscal_year": 2024,
+  "management_discussion": {
+    "total_revenue_millions": 2146,
+    "prior_year_revenue_millions": 1824,
+    "gross_margin_pct": 51.8,
+    "operating_income_millions": 386,
+    "net_income_millions": 302
+  },
+  "segments": [
+    {
+      "name": "Industrial Chips",
+      "revenue": 1342,
+      "prior_revenue": 1098,
+      "operating_income": 267
+    },
+    {
+      "name": "Automotive Systems",
+      "revenue": 524,
+      "prior_revenue": 472,
+      "operating_income": 79
+    },
+    {
+      "name": "Edge Computing",
+      "revenue": 280,
+      "prior_revenue": 254,
+      "operating_income": 40
+    }
+  ],
+  "balance_sheet_thousands": {
+    "total_current_assets": 741600,
+    "total_assets": 2684500,
+    "total_current_liabilities": 402700,
+    "total_liabilities": 918400,
+    "total_stockholders_equity": 1766100
+  }
+}

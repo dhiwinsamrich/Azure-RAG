@@ -1,0 +1,53 @@
+{
+  "doc_id": "CASCADIA-10K-FY2024",
+  "company": "Cascadia Robotics, Inc.",
+  "ticker": "CSCD",
+  "doc_type": "10-K",
+  "fiscal_year": 2024,
+  "filing_date": "2025-02-14",
+  "governing_rules": "U.S. GAAP and SEC EDGAR regulations",
+  "management_discussion": {
+    "total_revenue_millions": 1842,
+    "prior_year_revenue_millions": 1561,
+    "revenue_growth_pct": 18.0,
+    "gross_margin_pct": 54.2,
+    "operating_income_millions": 312,
+    "net_income_millions": 241,
+    "diluted_eps": 1.87
+  },
+  "segment_results": [
+    {
+      "segment": "Industrial Automation",
+      "revenue_fy24": 1203,
+      "revenue_fy23": 967,
+      "operating_income": 268
+    },
+    {
+      "segment": "Consumer Robotics",
+      "revenue_fy24": 421,
+      "revenue_fy23": 398,
+      "operating_income": 31
+    },
+    {
+      "segment": "Field Services",
+      "revenue_fy24": 218,
+      "revenue_fy23": 196,
+      "operating_income": 13
+    }
+  ],
+  "consolidated_balance_sheet": {
+    "currency": "USD",
+    "units": "thousands",
+    "period_ended": "2024-12-31",
+    "total_current_assets": 612400,
+    "total_assets": 2341800,
+    "total_current_liabilities": 341200,
+    "total_liabilities": 891200,
+    "total_stockholders_equity": 1450600
+  },
+  "cash_flows": {
+    "operating_cash_flow_millions": 389,
+    "capital_expenditures_millions": 142,
+    "free_cash_flow_millions": 247
+  }
+}
