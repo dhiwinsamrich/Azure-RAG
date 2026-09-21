@@ -49,6 +49,7 @@ import {
   type MlflowRun,
   type RunSummary,
 } from "@/lib/types";
+import { formatDate, formatShortDate } from "@/lib/utils";
 
 const HEADLINE = [
   "citation_validity",
@@ -119,8 +120,8 @@ export function EvalDashboardClient({ runs, matrix, mlflowRuns }: EvalDashboardC
             </Badge>
           </div>
           {latest && (
-            <p className="font-mono text-xs text-muted-foreground">
-              Latest: <span className="text-foreground font-medium">{latest.id}</span> · config: <span className="text-primary">{latest.config_id}</span> · trigger: {latest.trigger} · {new Date(latest.started_at).toLocaleDateString()}
+            <p className="font-mono text-xs text-muted-foreground" suppressHydrationWarning>
+              Latest: <span className="text-foreground font-medium">{latest.id}</span> · config: <span className="text-primary">{latest.config_id}</span> · trigger: {latest.trigger} · <span suppressHydrationWarning>{formatDate(latest.started_at)}</span>
             </p>
           )}
         </div>
@@ -414,11 +415,8 @@ export function EvalDashboardClient({ runs, matrix, mlflowRuns }: EvalDashboardC
                             <Badge variant="secondary" className="font-mono text-[10px] uppercase font-normal">
                               {r.trigger}
                             </Badge>
-                            <p className="font-mono text-[10px] text-muted-foreground">
-                              {new Date(r.started_at).toLocaleDateString(undefined, {
-                                month: "short",
-                                day: "numeric",
-                              })}
+                            <p className="font-mono text-[10px] text-muted-foreground" suppressHydrationWarning>
+                              {formatShortDate(r.started_at)}
                             </p>
                           </div>
                         </TableCell>

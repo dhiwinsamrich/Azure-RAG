@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { QuestionTypeBreakdownChart } from "@/components/QuestionTypeBreakdownChart";
 import { Badge } from "@/components/ui/badge";
+import { formatDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -137,13 +138,8 @@ export function RunDrilldownDrawer({
             <Badge variant="secondary" className="font-mono text-[11px] font-normal">
               trigger: {run.trigger}
             </Badge>
-            <span className="font-mono text-xs text-muted-foreground">
-              {new Date(run.started_at).toLocaleString(undefined, {
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+            <span className="font-mono text-xs text-muted-foreground" suppressHydrationWarning>
+              {formatDateTime(run.started_at)}
             </span>
           </div>
           <DialogDescription className="text-xs text-muted-foreground pt-1">
