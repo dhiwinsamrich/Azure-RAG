@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
-import { NavStatus } from "@/components/nav-status";
+import { PoweredBy } from "@/components/PoweredBy";
 
 // shadcn's theme block reads --font-sans / --font-mono; next/font defines them.
 const sans = Geist({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -15,7 +15,6 @@ export const metadata: Metadata = {
 };
 
 const NAV = [
-  { href: "/", label: "Ask" },
   { href: "/corpus", label: "Corpus" },
   { href: "/eval", label: "Quality" },
 ];
@@ -60,7 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               ))}
             </nav>
 
-            <NavStatus />
+            <PoweredBy />
           </div>
         </header>
 
