@@ -407,6 +407,28 @@ async def list_documents() -> list[dict[str, Any]]:
     return docs
 
 
+@api.get("/suggestions")
+async def suggestions(doc_ids: list[str] = Query(default_factory=list)) -> dict[str, list[str]]:
+    """Starter questions for the documents currently in scope (all, if none)."""
+    from rag_core.suggestions import DocText, suggest
+
+    meta = {d["doc_id"]: d for d in await list_documents()}
+    wanted = [d for d in doc_ids if d in meta] or list(meta)
+    docs: list[DocText] = []
+    for doc_id in wanted[:6]:
+        try:
+            view = await document_chunks(doc_id)
+        except HTTPException:
+            continue
+        docs.append(DocText(
+            doc_id=doc_id,
+            text="\n".join(c.get("content", "") for c in view.get("chunks", [])),
+            fiscal_year=meta[doc_id].get("fiscal_year"),
+            doc_type=meta[doc_id].get("doc_type") or "",
+        ))
+    return {"suggestions": suggest(docs)}
+
+
 @api.get("/documents/{doc_id}/chunks")
 async def document_chunks(doc_id: str) -> dict[str, Any]:
     from rag_core.clients import build_searcher
