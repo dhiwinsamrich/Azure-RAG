@@ -1,0 +1,24 @@
+Company,"Cascadia Robotics, Inc."
+Ticker,CSCD
+Filing Type,Form 10-K Annual Report
+Fiscal Year,2024
+
+Segment,FY2024 Revenue ($M),FY2023 Revenue ($M),FY2024 Operating Income ($M)
+Industrial Automation,1203,967,268
+Consumer Robotics,421,398,31
+Field Services,218,196,13
+Total Consolidated,1842,1561,312
+
+Financial Statement Metric,FY2024 ($M),FY2023 ($M),Change (%)
+Total Revenue,1842,1561,18.0%
+Gross Profit,998,805,24.0%
+Operating Income,312,224,39.3%
+Net Income,241,173,39.3%
+Operating Cash Flows,389,298,30.5%
+
+Balance Sheet Item (in thousands),"December 31, 2024","December 31, 2023"
+Total current assets,612400,498150
+Total assets,2341800,2014500
+Total current liabilities,341200,298400
+Total liabilities,891200,898400
+Total stockholders' equity,1450600,1116100

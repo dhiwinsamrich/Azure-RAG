@@ -1,0 +1,16 @@
+Company,"Atlas Semiconductor, Inc."
+Ticker,ATLS
+Fiscal Year,2024
+Filing,10-K SEC Annual Report
+
+Segment,Period Revenue ($M),Prior-Year Revenue ($M),Operating Income ($M)
+Industrial Chips,1342,1098,267
+Automotive Systems,524,472,79
+Edge Computing,280,254,40
+Consolidated Total,2146,1824,386
+
+Balance Sheet Item ($ in thousands),"Dec 31, 2024","Dec 31, 2023"
+Total current assets,741600,622400
+Total assets,2684500,2311800
+Total liabilities,918400,812700
+Total stockholders' equity,1766100,1499100
