@@ -1,0 +1,21 @@
+UNITED STATES SECURITIES AND EXCHANGE COMMISSION
+FORM 10-K - ANNUAL REPORT
+Northstar Cloud Services, Inc. (NASDAQ: NSTR)
+Fiscal year ended December 31, 2024
+
+Item 7. Management's Discussion and Analysis
+Northstar Cloud Services reported total annual revenue of $3,450 million in FY2024, representing 24% year-over-year revenue growth compared to $2,780 million in FY2023.
+
+Financial Highlights:
+- Annual Recurring Revenue (ARR): $3,120 million, up 27% year over year.
+- Gross Margin: 68.4%, compared to 65.2% in FY2023.
+- Operating Income: $610 million, up from $415 million in FY2023.
+- Net Income: $485 million, compared to $330 million in FY2023.
+
+Consolidated Statements of Financial Position:
+- Total current assets: $1,250,000 thousand
+- Total assets: $4,120,000 thousand
+- Total liabilities: $1,430,000 thousand
+- Total stockholders' equity: $2,690,000 thousand
+
+Cash flows from operating activities totaled $820 million for the year.

@@ -1,0 +1,62 @@
+UNITED STATES SECURITIES AND EXCHANGE COMMISSION
+WASHINGTON, D.C. 20549
+FORM 10-K
+
+ANNUAL REPORT PURSUANT TO SECTION 13 OR 15(d) OF THE SECURITIES EXCHANGE ACT OF 1934
+For the fiscal year ended December 31, 2024
+Commission File Number: 001-39482
+
+CASCADIA ROBOTICS, INC.
+(Exact name of registrant as specified in its charter)
+NASDAQ: CSCD
+
+SYNTHETIC SAMPLE DOCUMENT. Cascadia Robotics is a fictional company and every figure below is invented for testing purposes. Prepared in accordance with U.S. GAAP.
+
+<!-- page: 2 -->
+PART I - ITEM 7. MANAGEMENT'S DISCUSSION AND ANALYSIS OF FINANCIAL CONDITION AND RESULTS OF OPERATIONS
+
+OVERVIEW
+Total revenue was $1,842 million in fiscal year 2024, an increase of 18% compared with $1,561 million in fiscal year 2023. Growth was driven primarily by the Industrial Automation segment, which benefited from strong customer demand for warehouse picking robots.
+
+Gross margin was 54.2% in fiscal year 2024, compared with 51.6% in fiscal year 2023, representing an expansion of 260 basis points.
+
+Operating income reached $312 million in fiscal year 2024, compared with $224 million in fiscal year 2023, reflecting a 39.3% increase despite an increase in R&D operating expenses.
+
+Net income for fiscal year 2024 was $241 million, or $1.87 per diluted share, compared with $173 million, or $1.36 per diluted share, in fiscal year 2023.
+
+<!-- page: 3 -->
+SEGMENT RESULTS
+
+Revenue and operating income by reportable segment for the years ended December 31, 2024 and 2023:
+
++-------------------------+---------------+---------------+-----------------------+
+| Segment                 | FY24 Revenue  | FY23 Revenue  | FY24 Operating Income |
++-------------------------+---------------+---------------+-----------------------+
+| Industrial Automation   | $1,203 M      | $967 M        | $268 M                |
+| Consumer Robotics       | $421 M        | $398 M        | $31 M                 |
+| Field Services          | $218 M        | $196 M        | $13 M                 |
++-------------------------+---------------+---------------+-----------------------+
+| Total Consolidated      | $1,842 M      | $1,561 M      | $312 M                |
++-------------------------+---------------+---------------+-----------------------+
+
+<!-- page: 4 -->
+CONSOLIDATED BALANCE SHEETS
+(in thousands, except share and per share data)
+
+ASSETS                                         December 31, 2024    December 31, 2023
+---------------------------------------------  -----------------    -----------------
+Total current assets                                $   612,400          $   498,150
+Property, plant and equipment, net                      894,200              781,300
+Goodwill and intangible assets                          412,000              412,000
+Total assets                                        $ 2,341,800          $ 2,014,500
+
+LIABILITIES AND STOCKHOLDERS' EQUITY
+Total current liabilities                           $   341,200          $   298,400
+Long-term debt, less current portion                    450,000              500,000
+Total liabilities                                   $   891,200          $   898,400
+Total stockholders' equity                            1,450,600            1,116,100
+Total liabilities and stockholders' equity          $ 2,341,800          $ 2,014,500
+
+<!-- page: 5 -->
+CONSOLIDATED STATEMENTS OF CASH FLOWS
+Net cash provided by operating activities was $389 million in fiscal year 2024, compared with $298 million in fiscal year 2023. Capital expenditures were $142 million. Free cash flow was $247 million.
