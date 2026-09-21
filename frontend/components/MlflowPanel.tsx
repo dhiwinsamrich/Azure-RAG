@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { THRESHOLDS, type MlflowRun } from "@/lib/types";
+import { formatDateTime } from "@/lib/utils";
 
 const TRACKED_METRICS = [
   "citation_validity",
@@ -214,13 +215,8 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db`}
                   <TableCell className="tabular text-right font-mono text-xs">
                     {r.metrics.regression_pass_rate?.toFixed(3) ?? "—"}
                   </TableCell>
-                  <TableCell className="font-mono text-[10px] text-muted-foreground">
-                    {new Date(r.start_time).toLocaleString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                  <TableCell className="font-mono text-[10px] text-muted-foreground" suppressHydrationWarning>
+                    {formatDateTime(r.start_time)}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, GitCommit, Layers, Workflow } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { formatDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -102,13 +103,8 @@ export function MlflowRunDrawer({ run, isOpen, onClose }: MlflowRunDrawerProps) 
                 {run.git_sha}
               </span>
             )}
-            <span className="font-mono text-xs text-muted-foreground">
-              {new Date(run.start_time).toLocaleString(undefined, {
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+            <span className="font-mono text-xs text-muted-foreground" suppressHydrationWarning>
+              {formatDateTime(run.start_time)}
             </span>
           </div>
           <DialogDescription className="pt-1 font-mono text-xs text-muted-foreground">
